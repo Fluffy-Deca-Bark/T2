@@ -96,3 +96,37 @@ begin
             NovaParticipacao.Tempo,NovaParticipacao.Situacao,NovaParticipacao.Raia);
   end if;
 end;
+
+
+/*************
+* ParticipaProximaEtapa:
+*   Age no update da tabela Participa.
+*   Garante que um competidor só possa ter tempo e situação colocados em uma série caso
+*   o status da série anterior seja 'executada'.
+*************/
+create or replace trigger ParticipaProximaEtapa
+instead of insert on Participa
+referencing OLD as VelhaParticipacao NEW as NovaParticipacao
+for each row
+declare
+  altereiOQueNaoDevia number;
+  serieAntes number;
+  statusAnterior
+begin 
+  altereiOQueNaoDevia :=
+  (VelhaParticipacao.tempo != NovaParticipacao.tempo or
+  VelhaParticipacao.situcacao != NovaParticipacao.situacao);
+  if (altereiOQueNaoDevia) then
+    serieAntes := VelhaParticipacao.SeqSerie;
+    if (serieAntes != 1) then
+      select status
+      case when Seq = serieAntes-1 then
+        
+      from serie;
+    else
+      ;
+    end if;
+  else
+    ;
+  end if;
+end;
