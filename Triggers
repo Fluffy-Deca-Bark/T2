@@ -1,7 +1,7 @@
 -- TRIGGERS
 
 /*************
-* DataEtapaDatasDiferentes:
+* DataEtapaDatasDiferentes/DataEtapaDatasDiferentes2:
 *   Age na inserção/update da tabela DataEtapa.
 *   Garante que etapas de uma mesma prova tenham datas diferentes.
 *************/
@@ -20,6 +20,26 @@ begin
         SexoProva = NovaData.SexoProva and
         Data = NovaData.data);
   if (numDatasRepetidas != 0) then
+    insert into DataEtapas
+      values(NovaData.NumMod,NovaData.DistProva,NovaData.SexoProva,NovaData.Data);
+  end if;
+end;
+
+create or replace trigger DataEtapaDatasDiferentes2
+instead of update on DataEtapas
+referencing NEW as NovaData
+for each row
+declare
+  numDatasRepetidas number;
+begin
+  numDatasRepetidas :=
+  (select count(*)
+  from DataEtapas
+  where NumMod = NovaData.NumMod and
+        DistProva = NovaData.DistProva and
+        SexoProva = NovaData.SexoProva and
+        Data = NovaData.data);
+  if (numDatasRepetidas <= 1) then
     insert into DataEtapas
       values(NovaData.NumMod,NovaData.DistProva,NovaData.SexoProva,NovaData.Data);
   end if;
