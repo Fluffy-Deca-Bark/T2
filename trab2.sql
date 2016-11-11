@@ -2,9 +2,11 @@
 -- DROP * --
 ------------
 
-drop table modalidade;
+
 drop table prova;
 drop table serie;
+drop table modalidade;
+
 
 ------------------
 -- CREATE TABLE --
@@ -22,8 +24,6 @@ create table modalidade
 
 
 drop table prova;
-drop table prova;
-
 create table prova
 (
   numMod number not null,
@@ -55,18 +55,9 @@ create table serie
 -- ALTER TABLE --
 -----------------
 
-
 alter table prova
   add constraint ProvaFK_numMod foreign key (numMod) references modalidade (num);
   
 alter table serie
-  add constraint SerieDistProvaFK foreign key (distProva) references prova (dist);
-
-alter table serie
-  add constraint SerieNumMod foreign key (numMod) references modalidade (num);
-
-alter table serie
-  add constraint SerieSexoProva foreign key (sexoProva) references prova (sexo);
-
-
+  add constraint SerieFK_Prova foreign key (numMod, distProva, sexoProva) references prova (numMod, dist, sexo);
 
