@@ -1,8 +1,9 @@
-------------
--- DROP * --
-------------
+----------------
+-- DROP TABLE --
+----------------
 
 
+drop table inscrito;
 drop table prova;
 drop table serie;
 drop table modalidade;
@@ -45,8 +46,29 @@ create table serie
   status number not null,
   
   constraint SeriePK primary key (distProva, etapa, numMod, seq, sexoProva),
-  constraint SerieEtapaPositiva check (etapa > 0),
+  constraint SerieEtapaPositiva check (etapa in (1, 2, 3)),
+  constraint SerieSeq check (seq >= 1 and seq <= 8),
+  constraint SerieSexoProva check (sexoProva in ('M', 'F')),
   constraint SerieStatus check (status in (0, 1))
+);
+
+drop table inscrito;
+create table inscrito
+(
+  numInsc number(5) not null,
+  numMod number not null,
+  distProva number not null,
+  sexoProva char not null,
+  aprovado char not null,
+  dataTorneio date not null,
+  localTorneio varchar2(200) not null,
+  melhorTempo number(3,2) not null,
+  nomeTorneio varchar2(200) not null,
+  
+  constraint InscritoPK primary key (numInsc, numMod, distProva, sexoProva),
+  constraint InscritoSexoProva check (sexoProva in ('M', 'F')),
+  constraint InscritoAprovado check (aprovado in ('S', 'N')),
+  constraint InscritoDataTorneio check (
 );
 
 
