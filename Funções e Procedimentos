@@ -7,7 +7,7 @@ create or replace function ObterEtapaSerie(pSerie in serie%rowtype)
 return date as
   dataEsperada date;
 begin
-  
+
   dataEsperada :=
   (select Data
     from DataEtapa
