@@ -20,8 +20,6 @@ create table modalidade
   constraint ModPK primary key (num)
 );
 
-
-
 drop table prova;
 create table prova
 (
