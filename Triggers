@@ -10,16 +10,16 @@ instead of insert on DataEtapas
 referencing NEW as NovaData
 for each row
 declare
-  numDatasRepetidas number;
+  nenhumaDataRepetida number;
 begin
-  numDatasRepetidas :=
-  (select count(*)
-  from DataEtapas
-  where NumMod = NovaData.NumMod and
-        DistProva = NovaData.DistProva and
-        SexoProva = NovaData.SexoProva and
-        Data = NovaData.data);
-  if (numDatasRepetidas != 0) then
+  nenhumaDataRepetida :=
+    0 = (select count(*)
+    from DataEtapas
+    where NumMod = NovaData.NumMod and
+          DistProva = NovaData.DistProva and
+          SexoProva = NovaData.SexoProva and
+          Data = NovaData.data);
+  if (nenhumaDataRepetida) then
     insert into DataEtapas
       values(NovaData.NumMod,NovaData.DistProva,NovaData.SexoProva,NovaData.Data);
   end if;
@@ -30,17 +30,24 @@ instead of update on DataEtapas
 referencing NEW as NovaData
 for each row
 declare
-  numDatasRepetidas number;
+  nenhumaDataRepetida number;
 begin
-  numDatasRepetidas :=
-  (select count(*)
-  from DataEtapas
-  where NumMod = NovaData.NumMod and
-        DistProva = NovaData.DistProva and
-        SexoProva = NovaData.SexoProva and
-        Data = NovaData.data);
-  if (numDatasRepetidas <= 1) then
+  nenhumaDataRepetida :=
+    1 >= (select count(*)
+    from DataEtapas
+    where NumMod = NovaData.NumMod and
+          DistProva = NovaData.DistProva and
+          SexoProva = NovaData.SexoProva and
+          Data = NovaData.data);
+  if (nenhumaDataRepetida) then
     insert into DataEtapas
       values(NovaData.NumMod,NovaData.DistProva,NovaData.SexoProva,NovaData.Data);
   end if;
 end;
+
+
+/*************
+* ParticipaUmaSeriePorEtapa:
+*   Age na inserção/update da tabela Participa.
+*   Garante que 
+*************/
