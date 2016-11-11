@@ -109,6 +109,7 @@ create table PARTICIPA
   CONSTRAINT PARTICIPA_SITUCAOCK CHECK(SITUACAO IN(NULL,1,2,3))
 );
 
+
 -----------------
 -- ALTER TABLE --
 -----------------
