@@ -3,7 +3,7 @@
 ------------
 
 drop table modalidade;
-drop table prova;
+drop table prova;--oi--
 drop table serie;
 ----
 
@@ -22,7 +22,7 @@ create table modalidade
 
 
 
-drop table prova;
+drop table prova;--fghjklç--
 create table prova
 (
   numMod number not null,
