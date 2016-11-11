@@ -6,7 +6,7 @@
 drop table prova;
 drop table serie;
 drop table modalidade;
-
+DROP TABLE COMPETIDOR;
 
 ------------------
 -- CREATE TABLE --
@@ -48,8 +48,16 @@ create table serie
   constraint SerieEtapaPositiva check (etapa > 0),
   constraint SerieStatus check (status in (0, 1))
 );
-
-
+DROP TABLE COMPETIDOR;
+create table competidor
+(
+   NUMINSCR NUMBER(5) NOT NULL,
+   NOME VARCHAR2(100) NOT NULL,
+   SEXO CHAR NOT NULL,
+   ANONASC NUMBER(4) NOT NULL,
+   
+  CONSTRAINT COMPETIDOR_NUMINSCRPK PRIMARY KEY(NUMINSCR)
+);
 
 -----------------
 -- ALTER TABLE --
