@@ -5,7 +5,6 @@
 drop table modalidade;
 drop table prova;
 drop table serie;
-----
 
 ------------------
 -- CREATE TABLE --
@@ -38,7 +37,16 @@ create table prova
 drop table serie;
 create table serie
 (
+  distProva number not null,
+  etapa number not null,
+  numMod number not null,
+  seq number not null,
+  sexoProva char not null,
+  status number not null,
   
+  constraint SeriePK primary key (distProva, etapa, numMod, seq, sexoProva),
+  constraint SerieEtapaPositiva check (etapa > 0),
+  constraint SerieStatus check (status in (0, 1))
 );
 
 
@@ -51,3 +59,14 @@ create table serie
 alter table prova
   add constraint ProvaFK_numMod foreign key (numMod) references modalidade (num);
   
+alter table serie
+  add constraint SerieDistProvaFK foreign key (distProva) references prova (dist);
+
+alter table serie
+  add constraint SerieNumMod foreign key (numMod) references modalidade (num);
+
+alter table serie
+  add constraint SerieSexoProva foreign key (sexoProva) references prova (sexo);
+
+
+
