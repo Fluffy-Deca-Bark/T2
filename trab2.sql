@@ -32,6 +32,7 @@ create table prova
   sexo char not null,
   
   constraint ProvaPK primary key (numMod, dist, sexo),
+  constraint ProvaDistPositiva check (dist > 0),
   constraint ProvaSexo check (sexo in ('M', 'F'))
 );
 
@@ -51,7 +52,6 @@ create table serie
   constraint SerieSexoProva check (sexoProva in ('M', 'F')),
   constraint SerieStatus check (status in (0, 1))
 );
-<<<<<<< HEAD
 
 drop table inscrito;
 create table inscrito
@@ -69,23 +69,20 @@ create table inscrito
   constraint InscritoPK primary key (numInsc, numMod, distProva, sexoProva),
   constraint InscritoSexoProva check (sexoProva in ('M', 'F')),
   constraint InscritoAprovado check (aprovado in ('S', 'N')),
-  constraint InscritoDataTorneio check (
+  constraint InscritoMelhorTempo check (melhorTempo > 0)
 );
 
-
-=======
 DROP TABLE COMPETIDOR;
 create table competidor
 (
-   NUMINSCR NUMBER(5) NOT NULL,
+   NUMINSC NUMBER(5) NOT NULL,
    NOME VARCHAR2(100) NOT NULL,
    SEXO CHAR NOT NULL,
    ANONASC NUMBER(4) NOT NULL,
   
   CONSTRAINT COMPETIDOR_SEXOCK CHECK(SEXO IN('M','F')), 
-  CONSTRAINT COMPETIDOR_NUMINSCRPK PRIMARY KEY(NUMINSCR)
+  CONSTRAINT COMPETIDOR_NUMINSCPK PRIMARY KEY(NUMINSC)
 );
->>>>>>> origin/master
 
 -----------------
 -- ALTER TABLE --
@@ -97,3 +94,11 @@ alter table prova
 alter table serie
   add constraint SerieFK_Prova foreign key (numMod, distProva, sexoProva) references prova (numMod, dist, sexo);
 
+alter table inscrito
+  add constraint InscritoFK_Competidor foreign key (numInsc) references competidor (numInsc);
+  
+alter table inscrito
+  add constraint InscritoFK_Mod foreign key (numMod) references modalidade (num);
+  
+alter table inscrito
+  add constraint InscritoFK_Prova foreign key (numMod, distProva, sexoProva) references prova (numMod, dist, sexo);
