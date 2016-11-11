@@ -5,7 +5,7 @@
 drop table modalidade;
 drop table prova;
 drop table serie;
-
+----
 
 ------------------
 -- CREATE TABLE --
