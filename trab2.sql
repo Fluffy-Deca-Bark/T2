@@ -7,7 +7,7 @@ drop table inscrito;
 drop table prova;
 drop table serie;
 drop table modalidade;
-
+DROP TABLE COMPETIDOR;
 
 ------------------
 -- CREATE TABLE --
@@ -51,6 +51,7 @@ create table serie
   constraint SerieSexoProva check (sexoProva in ('M', 'F')),
   constraint SerieStatus check (status in (0, 1))
 );
+<<<<<<< HEAD
 
 drop table inscrito;
 create table inscrito
@@ -72,6 +73,19 @@ create table inscrito
 );
 
 
+=======
+DROP TABLE COMPETIDOR;
+create table competidor
+(
+   NUMINSCR NUMBER(5) NOT NULL,
+   NOME VARCHAR2(100) NOT NULL,
+   SEXO CHAR NOT NULL,
+   ANONASC NUMBER(4) NOT NULL,
+  
+  CONSTRAINT COMPETIDOR_SEXOCK CHECK(SEXO IN('M','F')), 
+  CONSTRAINT COMPETIDOR_NUMINSCRPK PRIMARY KEY(NUMINSCR)
+);
+>>>>>>> origin/master
 
 -----------------
 -- ALTER TABLE --
