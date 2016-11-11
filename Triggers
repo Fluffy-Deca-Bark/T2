@@ -47,7 +47,52 @@ end;
 
 
 /*************
-* ParticipaUmaSeriePorEtapa:
+* ParticipaUmaSeriePorEtapa/ParticipaUmaSeriePorEtapa2:
 *   Age na inserção/update da tabela Participa.
-*   Garante que 
+*   Garante que cada competidor só participe de uma série por etapa, para cada prova
 *************/
+create or replace trigger ParticipaUmaSeriePorEtapa
+instead of insert on Participa
+referencing NEW as NovaParticipacao
+for each row
+declare
+  nenhumaTreta number;
+begin
+  nenhumaTreta :=
+    0 = (select count(*)
+    from Participa
+    where NumInscr = NovaParticipacao.NumInscr and
+          NumMod = NovaParticipacao.NumMod and
+          SexoProva = NovaParticipacao.SexoProva and
+          DistProva = NovaParticipacao.DistProva and
+          EtapaSerie = NovaParticipacao.EtapaSerie);
+  if (nenhumaTreta) then
+    insert into Participa
+      values(NovaParticipacao.NumInscr,NovaParticipacao.NumMod,NovaParticipacao.SexoProva,
+            NovaParticipacao.DistProva,NovaParticipacao.EtapaSerie,NovaParticipacao.SeqSerie,
+            NovaParticipacao.Tempo,NovaParticipacao.Situacao,NovaParticipacao.Raia);
+  end if;
+end;
+
+create or replace trigger ParticipaUmaSeriePorEtapa2
+instead of update on Participa
+referencing NEW as NovaParticipacao
+for each row
+declare
+  nenhumaTreta number;
+begin
+  nenhumaTreta :=
+    1 >= (select count(*)
+    from Participa
+    where NumInscr = NovaParticipacao.NumInscr and
+          NumMod = NovaParticipacao.NumMod and
+          SexoProva = NovaParticipacao.SexoProva and
+          DistProva = NovaParticipacao.DistProva and
+          EtapaSerie = NovaParticipacao.EtapaSerie);
+  if (nenhumaTreta) then
+    insert into Participa
+      values(NovaParticipacao.NumInscr,NovaParticipacao.NumMod,NovaParticipacao.SexoProva,
+            NovaParticipacao.DistProva,NovaParticipacao.EtapaSerie,NovaParticipacao.SeqSerie,
+            NovaParticipacao.Tempo,NovaParticipacao.Situacao,NovaParticipacao.Raia);
+  end if;
+end;
