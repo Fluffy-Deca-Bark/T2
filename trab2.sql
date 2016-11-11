@@ -56,7 +56,7 @@ create table serie
 drop table inscrito;
 create table inscrito
 (
-  numInsc number(5) not null,
+  NUMINSCR number(5) not null,
   numMod number not null,
   distProva number not null,
   sexoProva char not null,
@@ -66,7 +66,8 @@ create table inscrito
   melhorTempo number(3,2) not null,
   nomeTorneio varchar2(200) not null,
   
-  constraint InscritoPK primary key (numInsc, numMod, distProva, sexoProva),
+  constraint InscritoPK primary key (NUMINSCR, numMod, distProva, sexoProva),
+  constraint InscritoNUMINSCR CHECK(NUMINSCR>0),
   constraint InscritoSexoProva check (sexoProva in ('M', 'F')),
   constraint InscritoAprovado check (aprovado in ('S', 'N')),
   constraint InscritoMelhorTempo check (melhorTempo > 0)
@@ -75,13 +76,15 @@ create table inscrito
 DROP TABLE COMPETIDOR;
 create table competidor
 (
-   NUMINSC NUMBER(5) NOT NULL,
+   NUMINSCR NUMBER(5) NOT NULL,
    NOME VARCHAR2(100) NOT NULL,
    SEXO CHAR NOT NULL,
    ANONASC NUMBER(4) NOT NULL,
   
-  CONSTRAINT COMPETIDOR_SEXOCK CHECK(SEXO IN('M','F')), 
-  CONSTRAINT COMPETIDOR_NUMINSCPK PRIMARY KEY(NUMINSC)
+  CONSTRAINT COMPETIDOR_NUMINSCRPK PRIMARY KEY(NUMINSCR),
+  CONSTRAINT COMPETIDOR_SEXOCK CHECK(SEXO IN('M','F')),
+  CONSTRAINT COMPETIDOR_NUMINSCRCK CHECK(SEXO IN('M','F')),
+  CONSTRAINT COMPETIDOR_NUMINSCRCK CHECK(NUMINSCR>0)
 );
 
 DROP TABLE PARTICIPA;
@@ -97,6 +100,7 @@ create table PARTICIPA
    SITUACAO NUMBER,
    TEMPO NUMBER(3,2),
   CONSTRAINT PARTICIPAPK PRIMARY KEY(NUMINSCR,NUMMOD,SEXOPROVA,DISTPROVA,ETAPASERIE,SEQSERIE),
+  CONSTRAINT PARTICIPA_NUMINSCRCK CHECK(NUMINSCR>0),
   CONSTRAINT PARTICIPA_SEXOPROVACK CHECK(SEXOPROVA IN('M','F')),
   CONSTRAINT PARTICIPA_DISTPROVACK CHECK(DISTPROVA>0),
   CONSTRAINT PARTICIPA_ETAPASERIECK CHECK(ETAPASERIE IN (1,2,3)),
@@ -116,7 +120,7 @@ alter table serie
   add constraint SerieFK_Prova foreign key (numMod, distProva, sexoProva) references prova (numMod, dist, sexo);
 
 alter table inscrito
-  add constraint InscritoFK_Competidor foreign key (numInsc) references competidor (numInsc);
+  add constraint InscritoFK_Competidor foreign key (NUMINSCR) references competidor (NUMINSCR);
   
 alter table inscrito
   add constraint InscritoFK_Mod foreign key (numMod) references modalidade (num);
