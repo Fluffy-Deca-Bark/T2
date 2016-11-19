@@ -1,11 +1,17 @@
 -- FUNCTIONS
 
-/***********
-* ObterEtapaSerie:
-*   Recebe uma struct serie e retorna sua data.
-*   (salva em sua prova)
-*********/
-create or replace function ObterEtapaSerie(pSerie in serie%rowtype)
+/**********************************************************************
+*	FUNÇÃO:
+*		ObterEtapaSerie
+*	DESCRIÇÃO:
+*   	Obtém a data em que ocorre uma série, através de sua etapa
+*	PARÂMETROS:
+*		pSerie	- ENTRADA - SERIE%ROWTYPE
+*			linha correspondente à série
+*	RETORNO:
+*		DATA - Retorna a data de realização da série
+**********************************************************************/
+create or replace function ObterDataSerie(pSerie in serie%rowtype)
 return date as
   dataEsperada date;
 begin
@@ -20,5 +26,45 @@ begin
     order by Data);
     
     return dataEsperada;
-end;
-/
+end ObterEtapaSerie;
+
+
+/**********************************************************************
+*	FUNÇÃO:
+*		SelecionarParticipantes
+*	DESCRIÇÃO:
+*   	Seleciona melhores participantes inscritos em uma prova e
+*		muda o atributo "Aprovado" da tabela Inscrito deles para 'S'
+*	PARÂMETROS:
+*		pModProva	- ENTRADA	- NÚMERO
+*			Número da modalidade (ver tabela Modalidade) da prova
+*		pSexoProva	- ENTRADA	- CARACTER
+*			'M' ou 'F', sexo dos participantes da prova
+*		pDistProva	- ENTRADA	- NÚMERO
+*			Distância de percurso da prova, em metros
+*	RETORNO:
+*		NÚMERO - Retorna o número de participates selecionados
+**********************************************************************/
+create or replace function SelecionarParticipantes	(pMod in number, pSexoProva in char,
+													pDist in number)
+return number as
+	linhaInscritoSelecionado Inscrito%rowtype;
+	numSelecionados number;
+begin
+	numSelecionados := 0;
+	
+	open cursorInscritoMenoresTempos(64);
+	loop
+		fetch cursorInscritoMenoresTempos into linhaInscritoSelecionado;
+		exit when cursorInscritoMenoresTempos%notfound;
+		
+		update Inscrito
+		set Aprovado = 'S'
+		where NumInscr = linhaInscrito.NumInscr;
+		
+		numSelecionados := numSelecionados + 1;
+	end loop;
+	close cursorInscritoMenoresTempos;
+	
+	return numSelecionados;
+end SelecionarParticipantes;
