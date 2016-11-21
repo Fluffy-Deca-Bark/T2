@@ -26,6 +26,7 @@ begin
       values(NovaData.NumMod,NovaData.DistProva,NovaData.SexoProva,NovaData.Data);
   end if;
 end;
+/
 
 create or replace trigger DataEtapaDatasDiferentes2
 instead of update on DataEtapas
@@ -46,7 +47,7 @@ begin
       values(NovaData.NumMod,NovaData.DistProva,NovaData.SexoProva,NovaData.Data);
   end if;
 end;
-
+/
 
 /**********************************************************************
 *	TRIGGERS:
@@ -78,6 +79,7 @@ begin
             NovaParticipacao.Tempo,NovaParticipacao.Situacao,NovaParticipacao.Raia);
   end if;
 end;
+/
 
 create or replace trigger ParticipaUmaSeriePorEtapa2
 instead of update on Participa
@@ -101,13 +103,14 @@ begin
             NovaParticipacao.Tempo,NovaParticipacao.Situacao,NovaParticipacao.Raia);
   end if;
 end;
+/
 
 /**********************************************************************
 *	TRIGGER:
 *		ParticipaProximaEtapa
 *	DESCRIÇÃO:
 *   	Age no update da tabela Participa.
-*		  Garante que um competidor só possa ter tempo e situação
+*		Garante que um competidor só possa ter tempo e situação
 *		colocados em uma série caso o status da série anterior
 *											seja 'executada'.
 **********************************************************************/
@@ -137,4 +140,4 @@ begin
     ;
   end if;
 end;
-
+/
