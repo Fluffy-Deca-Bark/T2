@@ -107,7 +107,7 @@ end;
 *		ParticipaProximaEtapa
 *	DESCRIÇÃO:
 *   	Age no update da tabela Participa.
-*		Garante que um competidor só possa ter tempo e situação
+*		  Garante que um competidor só possa ter tempo e situação
 *		colocados em uma série caso o status da série anterior
 *											seja 'executada'.
 **********************************************************************/
