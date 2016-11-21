@@ -23,6 +23,28 @@ declare
   a integer;
 begin
   a := SelecionarParticipantes(1,'F',200);
+  CriarSeries(1,'F',200,a);
   dbms_output.put_line(a);
+end;
+/
+
+declare
+  minhaData date;
+begin  
+  minhaData := ObterDataEtapa(1,'F',200,4);
+  dbms_output.put_line(minhaData);
+end;
+/
+
+declare
+  meuInteiro integer;
+  minhaSeed  BINARY_INTEGER;
+begin
+  minhaSeed := TO_NUMBER(TO_CHAR(SYSDATE,'YYYYDDMMSS'));
+  dbms_random.initialize(val => minhaSeed);
+  --meuInteiro := floor(select dbms_random.value(1,numRaiasExtras+1) from dual);
+  meuInteiro := floor(dbms_random.value(1,9));
+  dbms_output.put_line(meuInteiro);
+  dbms_random.terminate;
 end;
 /
