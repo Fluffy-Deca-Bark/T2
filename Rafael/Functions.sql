@@ -36,28 +36,34 @@ end ObterEtapaSerie;
 *   	Seleciona melhores participantes inscritos em uma prova e
 *		muda o atributo "Aprovado" da tabela Inscrito deles para 'S'
 *	PARÂMETROS:
-*		pModProva	- ENTRADA	- NÚMERO
+*		pModProva	- ENTRADA	- INTEIRO
 *			Número da modalidade (ver tabela Modalidade) da prova
 *		pSexoProva	- ENTRADA	- CARACTER
 *			'M' ou 'F', sexo dos participantes da prova
 *		pDistProva	- ENTRADA	- NÚMERO
 *			Distância de percurso da prova, em metros
 *	RETORNO:
-*		NÚMERO - Retorna o número de participates selecionados
+*		INTEIRO - Retorna o número de participates selecionados
 **********************************************************************/
-create or replace function SelecionarParticipantes	(pMod in number, pSexoProva in char,
-													pDist in number)
-return number as
+create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,
+													pDistProva in number)
+return integer as
 	linhaInscritoSelecionado Inscrito%rowtype;
-	numSelecionados number;
+	numSelecionados integer;
 	
-	cursor cursorInscritoMenoresTempos (pModProva number, pSexoProva number, pDistProva, pQtdMelhores number)
+	cursor cursorInscritoMenoresTempos (pModProva integer, pSexoProva number, pDistProva, pQtdMelhores integer)
 	is
 	select *
 	from Inscrito tempoEmTeste
-	where pQtdMelhores >	(select count(*) as qtdTemposMelhores
+	where	NumMod = pModProva and
+			SexoProva = pSexoProva and
+			DistProva = pDistProva and
+			pQtdMelhores >	(select count(*) as qtdTemposMelhores
 							from Inscrito
-							where MelhorTempo < tempoEmTeste.MelhorTempo);
+							where	NumMod = pModProva and
+									SexoProva = pSexoProva and
+									DistProva = pDistProva and
+									MelhorTempo < tempoEmTeste.MelhorTempo);
 begin
 	numSelecionados := 0;
 	

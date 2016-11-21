@@ -1,10 +1,12 @@
 -- TRIGGERS
 
-/*************
-* DataEtapaDatasDiferentes/DataEtapaDatasDiferentes2:
-*   Age na inserção/update da tabela DataEtapa.
-*   Garante que etapas de uma mesma prova tenham datas diferentes.
-*************/
+/**********************************************************************
+*	TRIGGERS:
+*		DataEtapaDatasDiferentes/DataEtapaDatasDiferentes2
+*	DESCRIÇÃO:
+*   	Agem na inserção/update da tabela DataEtapa.
+*		Garantem que etapas de uma mesma prova tenham datas diferentes.
+**********************************************************************/
 create or replace trigger DataEtapaDatasDiferentes
 instead of insert on DataEtapas
 referencing NEW as NovaData
@@ -46,11 +48,14 @@ begin
 end;
 
 
-/*************
-* ParticipaUmaSeriePorEtapa/ParticipaUmaSeriePorEtapa2:
-*   Age na inserção/update da tabela Participa.
-*   Garante que cada competidor só participe de uma série por etapa, para cada prova
-*************/
+/**********************************************************************
+*	TRIGGERS:
+*		ParticipaUmaSeriePorEtapa/ParticipaUmaSeriePorEtapa2
+*	DESCRIÇÃO:
+*   	Agem na inserção/update da tabela Participa
+*		Garantem que cada competidor só participe de uma série por
+*												etapa, para cada prova
+**********************************************************************/
 create or replace trigger ParticipaUmaSeriePorEtapa
 instead of insert on Participa
 referencing NEW as NovaParticipacao
@@ -97,13 +102,15 @@ begin
   end if;
 end;
 
-
-/*************
-* ParticipaProximaEtapa:
-*   Age no update da tabela Participa.
-*   Garante que um competidor só possa ter tempo e situação colocados em uma série caso
-*   o status da série anterior seja 'executada'.
-*************/
+/**********************************************************************
+*	TRIGGER:
+*		ParticipaProximaEtapa
+*	DESCRIÇÃO:
+*   	Age no update da tabela Participa.
+*		Garante que um competidor só possa ter tempo e situação
+*		colocados em uma série caso o status da série anterior
+*											seja 'executada'.
+**********************************************************************/
 create or replace trigger ParticipaProximaEtapa
 instead of insert on Participa
 referencing OLD as VelhaParticipacao NEW as NovaParticipacao

@@ -6,7 +6,7 @@
 *	DESCRIÇÃO:
 *   	Cria uma prova
 *	PARÂMETROS:
-*		pMod		- ENTRADA	- NÚMERO
+*		pMod		- ENTRADA	- INTEIRO
 *			Número da modalidade (ver tabela Modalidade) da prova
 *		pSexo	- ENTRADA	- CARACTER
 *			'M' ou 'F', sexo dos participantes da prova
@@ -19,7 +19,7 @@
 *		pData3		- ENTRADA	- DATA
 *			Data da etapa final	
 **********************************************************************/
-create or replace procedure CriarProva	(pMod in number, pSexo in char, pDist in number,
+create or replace procedure CriarProva	(pMod in integer, pSexo in char, pDist in number,
 										pData1 in date, pData2 in date, pData3 in date)
 as
 begin
@@ -40,7 +40,7 @@ end CriarProva;
 *   	Cria séries necessárias pra realizção de uma prova, segundo a
 *		quantidade de particpantes selecionados
 *	PARÂMETROS:
-*		pMod				- ENTRADA	- NÚMERO
+*		pMod				- ENTRADA	- INTEIRO
 *			Número da modalidade (ver tabela Modalidade) da prova
 *		pSexo				- ENTRADA	- CARACTER
 *			'M' ou 'F', sexo dos participantes da prova
@@ -50,9 +50,10 @@ end CriarProva;
 *			Número de participantes total que participará na prova
 *														(de 0 a 64)
 **********************************************************************/
-create or replace procedure CriarSeries	(pMod in number, pSexo in char, pDist in number,
-										pNumParticipantes in number)
+create or replace procedure CriarSeries	(pMod in integer, pSexo in char, pDist in number,
+										pNumParticipantes in integer)
 as
+	numSeries integer;
 begin
-	
+	numSeries = ceil();
 end CriarSeries;
