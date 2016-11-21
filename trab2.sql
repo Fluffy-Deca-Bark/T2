@@ -30,8 +30,8 @@ drop table prova cascade constraints;
 create table prova
 (
   numMod number not null,
-  dist number not null,
   sexo char not null,
+  dist number not null,
   
   constraint ProvaPK primary key (numMod, dist, sexo),
   constraint ProvaDistPositiva check (dist > 0),
@@ -41,11 +41,11 @@ create table prova
 drop table serie cascade constraints;
 create table serie
 (
+  numMod number not null,
+  sexoProva char not null,
   distProva number not null,
   etapa number not null,
-  numMod number not null,
   seq number not null,
-  sexoProva char not null,
   status number not null,
   
   constraint SeriePK primary key (distProva, etapa, numMod, seq, sexoProva),
@@ -60,13 +60,13 @@ create table inscrito
 (
   NUMINSCR number(5) not null,
   numMod number not null,
-  distProva number not null,
   sexoProva char not null,
-  aprovado char not null,
-  dataTorneio date not null,
-  localTorneio varchar2(200) not null,
+  distProva number not null,
   melhorTempo number(5,2) not null,
   nomeTorneio varchar2(200) not null,
+  localTorneio varchar2(200) not null,
+  dataTorneio date not null,
+  aprovado char not null,
   
   constraint InscritoPK primary key (NUMINSCR, numMod, distProva, sexoProva),
   constraint InscritoNUMINSCR CHECK(NUMINSCR>0),
@@ -97,9 +97,10 @@ create table PARTICIPA
    DISTPROVA NUMBER NOT NULL,
    ETAPASERIE NUMBER NOT NULL,
    SEQSERIE NUMBER NOT NULL,
-   RAIA NUMBER NOT NULL,
-   SITUACAO NUMBER,
    TEMPO NUMBER(5,2),
+   SITUACAO NUMBER,
+   RAIA NUMBER NOT NULL,
+  
   CONSTRAINT PARTICIPAPK PRIMARY KEY(NUMINSCR,NUMMOD,SEXOPROVA,DISTPROVA,ETAPASERIE,SEQSERIE),
   CONSTRAINT PARTICIPA_NUMINSCRCK CHECK(NUMINSCR>0),
   CONSTRAINT PARTICIPA_SEXOPROVACK CHECK(SEXOPROVA IN('M','F')),
@@ -124,9 +125,9 @@ DROP TABLE DATAETAPA cascade constraints;
 create table DATAETAPA
 (
    NUMMOD NUMBER NOT NULL,
-   DATA DATE NOT NULL,
-   SEXOPROVA CHAR NOT NULL,
    DISTPROVA NUMBER NOT NULL,
+   SEXOPROVA CHAR NOT NULL,
+   DATA DATE NOT NULL,
    
    CONSTRAINT DATAETAPAPK PRIMARY KEY(NUMMOD,DISTPROVA,SEXOPROVA,DATA),
    CONSTRAINT DATAETAPA_SEXOPROVACK CHECK(SEXOPROVA IN('M','F')),
