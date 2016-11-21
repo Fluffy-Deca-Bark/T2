@@ -3,19 +3,19 @@
 ----------------
 
 
-drop table inscrito;
-drop table prova;
-drop table serie;
-drop table modalidade;
-DROP TABLE COMPETIDOR;
-DROP TABLE PARTICIPA;
-DROP TABLE PATROCINADO;
-DROP TABLE DATAETAPA;  
+drop table inscrito cascade constraints;
+drop table prova cascade constraints;
+drop table serie cascade constraints;
+drop table modalidade cascade constraints;
+DROP TABLE COMPETIDOR cascade constraints;
+DROP TABLE PARTICIPA cascade constraints;
+DROP TABLE PATROCINADO cascade constraints;
+DROP TABLE DATAETAPA cascade constraints;  
 ------------------
 -- CREATE TABLE --
 ------------------
 
-drop table modalidade;
+drop table modalidade cascade constraints;
 create table modalidade
 (
   num number not null,
@@ -26,7 +26,7 @@ create table modalidade
 
 
 
-drop table prova;
+drop table prova cascade constraints;
 create table prova
 (
   numMod number not null,
@@ -38,7 +38,7 @@ create table prova
   constraint ProvaSexo check (sexo in ('M', 'F'))
 );
 
-drop table serie;
+drop table serie cascade constraints;
 create table serie
 (
   distProva number not null,
@@ -55,7 +55,7 @@ create table serie
   constraint SerieStatus check (status in (0, 1))
 );
 
-drop table inscrito;
+drop table inscrito cascade constraints;
 create table inscrito
 (
   NUMINSCR number(5) not null,
@@ -65,7 +65,7 @@ create table inscrito
   aprovado char not null,
   dataTorneio date not null,
   localTorneio varchar2(200) not null,
-  melhorTempo number(3,2) not null,
+  melhorTempo number(5,2) not null,
   nomeTorneio varchar2(200) not null,
   
   constraint InscritoPK primary key (NUMINSCR, numMod, distProva, sexoProva),
@@ -75,7 +75,7 @@ create table inscrito
   constraint InscritoMelhorTempo check (melhorTempo > 0)
 );
 
-DROP TABLE COMPETIDOR;
+DROP TABLE COMPETIDOR cascade constraints;
 create table competidor
 (
    NUMINSCR NUMBER(5) NOT NULL,
@@ -85,11 +85,10 @@ create table competidor
   
   CONSTRAINT COMPETIDOR_NUMINSCRPK PRIMARY KEY(NUMINSCR),
   CONSTRAINT COMPETIDOR_SEXOCK CHECK(SEXO IN('M','F')),
-  CONSTRAINT COMPETIDOR_NUMINSCRCK CHECK(SEXO IN('M','F')),
   CONSTRAINT COMPETIDOR_NUMINSCRCK CHECK(NUMINSCR>0)
 );
 
-DROP TABLE PARTICIPA;
+DROP TABLE PARTICIPA cascade constraints;
 create table PARTICIPA
 (
    NUMINSCR NUMBER(5) NOT NULL,
@@ -100,7 +99,7 @@ create table PARTICIPA
    SEQSERIE NUMBER NOT NULL,
    RAIA NUMBER NOT NULL,
    SITUACAO NUMBER,
-   TEMPO NUMBER(3,2),
+   TEMPO NUMBER(5,2),
   CONSTRAINT PARTICIPAPK PRIMARY KEY(NUMINSCR,NUMMOD,SEXOPROVA,DISTPROVA,ETAPASERIE,SEQSERIE),
   CONSTRAINT PARTICIPA_NUMINSCRCK CHECK(NUMINSCR>0),
   CONSTRAINT PARTICIPA_SEXOPROVACK CHECK(SEXOPROVA IN('M','F')),
@@ -111,7 +110,7 @@ create table PARTICIPA
   CONSTRAINT PARTICIPA_SITUCAOCK CHECK(SITUACAO IN(NULL,1,2,3))
 );
 
-DROP TABLE PATROCINADO;
+DROP TABLE PATROCINADO cascade constraints;
 create table PATROCINADO
 (
   NUMINSCR number(5) not null,
@@ -121,7 +120,7 @@ create table PATROCINADO
   CONSTRAINT PATROCINADOPK PRIMARY KEY (NUMINSCR,PATROCINADOR)
 );
 
-DROP TABLE DATAETAPA;  
+DROP TABLE DATAETAPA cascade constraints;  
 create table DATAETAPA
 (
    NUMMOD NUMBER NOT NULL,
@@ -176,3 +175,16 @@ ADD CONSTRAINT DATAETAPA_NUMMODFK FOREIGN KEY (NUMMOD) REFERENCES MODALIDADE(NUM
 ALTER TABLE DATAETAPA
 ADD CONSTRAINT DATAETAPA_PROVAFK FOREIGN KEY (NUMMOD,DISTPROVA,SEXOPROVA) REFERENCES PROVA(NUMMOD,DIST,SEXO);
   
+  
+insert into modalidade
+  values(1,'Medley');
+insert into modalidade
+  values(2,'Crawl');
+insert into modalidade
+  values(3,'Borboleta');
+insert into modalidade
+  values(4,'Peito');
+insert into modalidade
+  values(5,'Costas');
+insert into modalidade
+  values(6,'Cachorrinho');
