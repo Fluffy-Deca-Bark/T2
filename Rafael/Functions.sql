@@ -27,7 +27,7 @@ begin
     
     return dataEsperada;
 end ObterEtapaSerie;
-
+/
 
 /**********************************************************************
 *	FUNÇÃO:
@@ -51,7 +51,7 @@ return integer as
 	linhaInscritoSelecionado Inscrito%rowtype;
 	numSelecionados integer;
 	
-	cursor cursorInscritoMenoresTempos (pModProva integer, pSexoProva number, pDistProva, pQtdMelhores integer)
+	cursor cursorInscritoMenoresTempos (pModProva integer, pSexoProva char, pDistProva number, pQtdMelhores integer)
 	is
 	select *
 	from Inscrito tempoEmTeste
@@ -67,14 +67,14 @@ return integer as
 begin
 	numSelecionados := 0;
 	
-	open cursorInscritoMenoresTempos(64);
+	open cursorInscritoMenoresTempos(pModProva,pSexoProva,pDistProva,64);
 	loop
 		fetch cursorInscritoMenoresTempos into linhaInscritoSelecionado;
 		exit when cursorInscritoMenoresTempos%notfound;
 		
 		update Inscrito
-		set Aprovado = 'S'
-		where NumInscr = linhaInscrito.NumInscr;
+			set Aprovado = 'S'
+			where NumInscr = linhaInscritoSelecionado.NumInscr;
 		
 		numSelecionados := numSelecionados + 1;
 	end loop;
@@ -82,3 +82,4 @@ begin
 	
 	return numSelecionados;
 end SelecionarParticipantes;
+/
