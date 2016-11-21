@@ -26,10 +26,13 @@ begin
 	insert into Prova(NumMod,Sexo,Dist)
 		values (pMod,pSexo,pDist);
 	insert into DataEtapa(NumMod,DistProva,SexoProva,Data)
-		values	(pMod,pDist,pSexo,pData1),
-				(pMod,pDist,pSexo,pData2),
-				(pMod,pDist,pSexo,pData3);
+		values	(pMod,pDist,pSexo,pData1);
+	insert into DataEtapa(NumMod,DistProva,SexoProva,Data)
+		values  (pMod,pDist,pSexo,pData2);
+	insert into DataEtapa(NumMod,DistProva,SexoProva,Data)
+		values  (pMod,pDist,pSexo,pData3);
 end CriarProva;
+/
 
 /**********************************************************************
 *	PROCEDURE:
@@ -59,6 +62,7 @@ begin
 			values(pModProva,pSexoProva,pDistProva,1,i,0);
 	end loop;
 end CriarSeries;
+/
 
 /**********************************************************************
 *	PROCEDURE:
@@ -115,3 +119,4 @@ begin
 	floor(select dbms_random.value(1,numRaiasExtras+1) from dual);
 	dbms_random.terminate;
 end AlocarParticipantesSelecionados;
+/
