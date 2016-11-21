@@ -2,31 +2,46 @@
 
 /**********************************************************************
 *	FUNÇÃO:
-*		ObterEtapaSerie
+*		ObterDataEtapa
 *	DESCRIÇÃO:
-*   	Obtém a data em que ocorre uma série, através de sua etapa
+*   	Obtém a data em que ocorre uma etapa (número de 1 a 3) de uma
+*																prova
 *	PARÂMETROS:
-*		pSerie	- ENTRADA - SERIE%ROWTYPE
-*			linha correspondente à série
+*		pModProva	- ENTRADA	- INTEIRO
+*			Número da modalidade (ver tabela Modalidade) da prova
+*		pSexoProva	- ENTRADA	- CARACTER
+*			'M' ou 'F', sexo dos participantes da prova
+*		pDistProva	- ENTRADA	- NÚMERO
+*			Distância de percurso da prova, em metros
+*		pEtapa		- ENTRADA	- NÚMERO
+*			Número de 1 a 3 que representa etapa (1- eliminatória,
+*												2- semifinal, 3- final)	
 *	RETORNO:
-*		DATA - Retorna a data de realização da série
+*		DATA - Retorna a data de realização da etapa
 **********************************************************************/
-create or replace function ObterDataSerie(pSerie in serie%rowtype)
+create or replace function ObterDataEtapa(pModProva in integer, pSexoProva in char, pDistProva in number, pEtapa in integer)
 return date as
   dataEsperada date;
 begin
-
-  dataEsperada :=
-  (select Data
-    from DataEtapa
-    where pSerie.NumMod = NumMod and
-          pSerie.SexoProva = SexoProva and
-          pSerie.DistProva = DistProva and
-          rownum = pSerie.Etapa
-    order by Data);
-    
+  select Data into dataEsperada
+    from DataEtapa dataEmTeste
+    where pModProva = NumMod and
+          pSexoProva = SexoProva and
+          pDistProva = DistProva and
+            pEtapa-1 =  (select count(*)
+                        from DataEtapa
+                        where Data < dataEmTeste.Data);
     return dataEsperada;
-end ObterEtapaSerie;
+end ObterDataEtapa;
+/
+
+declare
+  a integer;
+begin
+  a := SelecionarParticipantes(1,'F',200);
+  CriarSeries(1,'F',200,a);
+  dbms_output.put_line(a);
+end;
 /
 
 /**********************************************************************
