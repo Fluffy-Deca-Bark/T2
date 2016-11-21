@@ -50,6 +50,14 @@ create or replace function SelecionarParticipantes	(pMod in number, pSexoProva i
 return number as
 	linhaInscritoSelecionado Inscrito%rowtype;
 	numSelecionados number;
+	
+	cursor cursorInscritoMenoresTempos (pModProva number, pSexoProva number, pDistProva, pQtdMelhores number)
+	is
+	select *
+	from Inscrito tempoEmTeste
+	where pQtdMelhores >	(select count(*) as qtdTemposMelhores
+							from Inscrito
+							where MelhorTempo < tempoEmTeste.MelhorTempo);
 begin
 	numSelecionados := 0;
 	
