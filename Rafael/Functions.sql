@@ -35,15 +35,6 @@ begin
 end ObterDataEtapa;
 /
 
-declare
-  a integer;
-begin
-  a := SelecionarParticipantes(1,'F',200);
-  CriarSeries(1,'F',200,a);
-  dbms_output.put_line(a);
-end;
-/
-
 /**********************************************************************
 *	FUNÇÃO:
 *		SelecionarParticipantes
@@ -114,12 +105,22 @@ end SelecionarParticipantes;
 *	RETORNO:
 *		INTEIRO - Retorna o número de inscrição do competidor criado
 **********************************************************************/
-create or replace function CriarCompetidor (pNome in varchar2, pSexo in char, pAno in integer)
+create or replace function CriarCompetidor (pNome in varchar2, pSexo in char, pAno in integer)		-- TESTADO
 return integer as
 	inscr integer;
+	numCompetidores integer;
 begin
-	-- inscr := GLOBAL_NUMINSCR
-	-- GLOBAL_NUMINSCR++
+	select count(*) into numCompetidores
+		from Competidor;
+	
+	if (numCompetidores = 0) then
+		inscr := 1;
+	else
+		select max(NumInscr) into inscr
+			from Competidor;
+		inscr := inscr + 1;
+	end if;
+	
 	insert into Competidor(NumInscr,Nome,Sexo,AnoNasc)
 		values(inscr,pNome,pSexo,pAno);
 	return inscr;
