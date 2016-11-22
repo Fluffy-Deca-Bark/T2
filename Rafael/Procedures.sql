@@ -4,7 +4,9 @@
 *	PROCEDURE:
 *		CriarProva
 *	DESCRIÇÃO:
-*   	Cria uma prova
+*   	Cria uma prova. Falha se datas passadas não seguirem requisitos:
+*		Datas das etapas devem ser diferentes. Data da eliminatória é
+*		predecessora da semifinal que vem antes da etapa final. 
 *	PARÂMETROS:
 *		pMod		- ENTRADA	- INTEIRO
 *			Número da modalidade (ver tabela Modalidade) da prova
@@ -24,8 +26,8 @@ create or replace procedure CriarProva	(pMod in integer, pSexo in char, pDist in
 as
 begin
 	if pData1 = pData2 or pData1 = pData3 or pData2 = pData3 or pData1 > pData2 or pData2 > pData3 then
-		-- fail
-	end if
+		raise_application_error(-20001,'Datas de etapas inválidas');
+	end if;
 	insert into Prova(NumMod,Sexo,Dist)
 		values (pMod,pSexo,pDist);
 	insert into DataEtapa(NumMod,DistProva,SexoProva,Data)
