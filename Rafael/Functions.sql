@@ -19,7 +19,7 @@
 *	RETORNO:
 *		DATA - Retorna a data de realização da etapa
 **********************************************************************/
-create or replace function ObterDataEtapa(pModProva in integer, pSexoProva in char, pDistProva in number, pEtapa in integer)
+create or replace function ObterDataEtapa(pModProva in integer, pSexoProva in char, pDistProva in number, pEtapa in integer)	-- TESTADO
 return date as
   dataEsperada date;
 begin
@@ -60,7 +60,7 @@ end;
 *	RETORNO:
 *		INTEIRO - Retorna o número de participates selecionados
 **********************************************************************/
-create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,
+create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,					-- TESTADO
 													pDistProva in number)
 return integer as
 	linhaInscritoSelecionado Inscrito%rowtype;
@@ -97,4 +97,31 @@ begin
 	
 	return numSelecionados;
 end SelecionarParticipantes;
+/
+
+/**********************************************************************
+*	FUNÇÃO:
+*		CriarCompetidor
+*	DESCRIÇÃO:
+*   	Cadastra um competidor no BD
+*	PARÂMETROS:
+*		pNome	- ENTRADA	- STRING
+*			Nome do competidor
+*		pSexo	- ENTRADA	- CARACTER
+*			'M' ou 'F', sexo do competidor
+*		pAno	- ENTRADA	- INTEIRO
+*			Ano de nascimento do competidor
+*	RETORNO:
+*		INTEIRO - Retorna o número de inscrição do competidor criado
+**********************************************************************/
+create or replace function CriarCompetidor (pNome in varchar2, pSexo in char, pAno in integer)
+return integer as
+	inscr integer;
+begin
+	-- inscr := GLOBAL_NUMINSCR
+	-- GLOBAL_NUMINSCR++
+	insert into Competidor(NumInscr,Nome,Sexo,AnoNasc)
+		values(inscr,pNome,pSexo,pAno);
+	return inscr;
+end;
 /
