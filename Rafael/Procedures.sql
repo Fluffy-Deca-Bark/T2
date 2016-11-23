@@ -21,7 +21,7 @@
 *		pData3		- ENTRADA	- DATA
 *			Data da etapa final	
 **********************************************************************/
-create or replace procedure CriarProva	(pMod in integer, pSexo in char, pDist in number,					-- COMPLETAR/TESTAR
+create or replace procedure CriarProva	(pMod in integer, pSexo in char, pDist in number,					-- TESTADO
 										pData1 in date, pData2 in date, pData3 in date)
 as
 begin
@@ -37,167 +37,6 @@ begin
 	insert into DataEtapa(NumMod,DistProva,SexoProva,Data)
 		values  (pMod,pDist,pSexo,pData3);
 end CriarProva;
-/
-
-/**********************************************************************
-*	PROCEDURE:
-*		CriarSeries
-*	DESCRIÇÃO:
-*   	Cria séries necessárias pra realizção de uma prova, segundo a
-*		quantidade de particpantes selecionados
-*	PARÂMETROS:
-*		pModProva			- ENTRADA	- INTEIRO
-*			Número da modalidade (ver tabela Modalidade) da prova
-*		pSexoProva			- ENTRADA	- CARACTER
-*			'M' ou 'F', sexo dos participantes da prova
-*		pDistProva			- ENTRADA	- NÚMERO
-*			Distância de percurso da prova, em metros
-*		pNumParticipantes	- ENTRADA	- NÚMERO
-*			Número de participantes total que participará na prova
-*														(de 0 a 64)
-**********************************************************************/
-create or replace procedure CriarSeries	(pModProva in integer, pSexoProva in char, pDistProva in number, 				-- RETESTAR
-										pNumParticipantes in integer)
-as
-	numSeries integer;
-begin
-	numSeries := ceil(pNumParticipantes / 8);
-	for i in 1..numSeries loop
-		insert into Serie(NumMod,SexoProva,DistProva,Etapa,Seq,Status)
-			values(pModProva,pSexoProva,pDistProva,1,i,0);
-	end loop;
-	if numSeries > 4 then
-		numSeries := 4;
-	end if;
-	for i in 1..numSeries loop
-		insert into Serie(NumMod,SexoProva,DistProva,Etapa,Seq,Status)
-			values(pModProva,pSexoProva,pDistProva,2,i,0);
-	end loop;
-	insert into Serie(NumMod,SexoProva,DistProva,Etapa,Seq,Status)
-		values(pModProva,pSexoProva,pDistProva,3,1,0);
-end CriarSeries;
-/
-
-/**********************************************************************
-*	PROCEDURE:
-*		AlocarParticipantesSelecionados
-*	DESCRIÇÃO:
-*   	Coloca participantes selecionados em uma prova em séries e
-*		raias aleatórias da etapa semifinal.
-*	PARÂMETROS:
-*		pModProva			- ENTRADA	- INTEIRO
-*			Número da modalidade (ver tabela Modalidade) da prova
-*		pSexoProva			- ENTRADA	- CARACTER
-*			'M' ou 'F', sexo dos participantes da prova
-*		pDistProva			- ENTRADA	- NÚMERO
-*			Distância de percurso da prova, em metros
-*		pNumParticipantes	- ENTRADA	- NÚMERO
-*			Número de participantes total que participará na prova
-*														(de 0 a 64)
-**********************************************************************/
-create or replace procedure AlocarParticipantesSelecionados	(pModProva in integer, pSexoProva in char,				-- TESTAR
-															pDistProva in number, pNumParticipantes in integer)
-as
-	numSeries integer;
-	numRaiasExtras integer; -- Número de raias que serão usadas na última série
-	raiaLimite integer;
-	rSeed  BINARY_INTEGER;
-	linhaInscrito Inscrito%rowtype;
-	raiaRNG integer;
-	serieRNG integer;
-	linhaRNG integer;
-	linhasRestantes integer;
-	
-	cursor cursorInscrito
-		is
-		select *
-		from Inscrito;
-begin
-	rSeed := := TO_NUMBER(TO_CHAR(SYSDATE,'YYYYDDMMSS'));
-	dbms_random.initialize(val => rSeed);
-	
-	numSeries := ceil(pNumParticipantes / 8);
-	numRaiasExtras := pNumParticipantes % 8;
-	if numRaiasExtras = 0 then -- Se a divisão é exata a última série possui 8 raias
-		numRaiasExtras := 8;
-	end if;
-	
-	create table RaiasAAlocar (
-		Ident		number(2)	primary key,
-		SeqSerie	number(1)	not null,
-		NumRaia		number(1)	not null
-	);
-	
-	for percorreSeries in 1..numSeries loop
-		if percorreSeries = numSeries then -- última série -> preenchem-se algumas raias
-			raiaLimite := numRaiasExtras;
-		else -- primeiras séries -> preenchem-se todas as raias
-			raiaLimite := 8;
-		end if;
-		
-		for percorreRaias in 1..raiaLimite loop
-			insert into RaiasAAlocar(Ident,SeqSerie,NumRaia)
-				values((percorreSeries-1)*8+percorreRaias,percorreSeries,percorreRaias);
-		end loop;
-	end loop;
-	
-	linhasRestantes := pNumParticipantes;
-	open cursorInscrito;
-	loop
-		fetch cursorInscrito into linhaInscrito;
-		exit when cursorInscrito%notfound;
-		
-		if linhaInscrito.Aprovado = 'S' then
-			linhaRNG := floor(dbms_random.value(1,linhasRestantes+1));
-			select SeqSerie into serieRNG, NumRaia into raiaRNG
-			from RaiasAAlocar casoATestar
-			where linhaRNG-1 =	(select count(*) as qtdMenores
-								from RaiasAAlocar
-								where Ident < casoATestar.Ident);
-			insert into Participa(NumInscr,NumMod,SexoProva,DistProva,EtapaSerie,SeqSerie,Tempo,Situacao,Raia)
-				values(linhaInscrito.NumInscr,pModProva,pSexoProva,pDistProva,1,serieRNG,NULL,NULL,raiaRNG)
-			delete from RaiasAAlocar
-				where	SeqSerie = serieRNG,
-						NumRaia = raiaRNG;
-			linhasRestantes := linhasRestantes - 1;
-		end if;
-	end loop;
-	close cursorInscrito;
-	
-	drop table RaiasAAlocar;
-	
-	dbms_random.terminate;
-end AlocarParticipantesSelecionados;
-/
-
-/**********************************************************************
-*	PROCEDURE:
-*		FinalizarInscricoes
-*	DESCRIÇÃO:
-*   	Finaliza as inscrições de uma prova, impedindo inscrição
-*		futura nela, selecionando os participantes, criando
-*		automaticamente todas suas séries e alocando cada participante
-*		em uma raia da etapa eliminatória.
-*	PARÂMETROS:
-*		pModProva			- ENTRADA	- INTEIRO
-*			Número da modalidade (ver tabela Modalidade) da prova
-*		pSexoProva			- ENTRADA	- CARACTER
-*			'M' ou 'F', sexo dos participantes da prova
-*		pDistProva			- ENTRADA	- NÚMERO
-*			Distância de percurso da prova, em metros
-**********************************************************************/
-create or replace procedure FinalizarInscricoes (pModProva in integer, pSexoProva in char,					-- COMPLETAR/TESTAR
-																	pDistProva in number)
-as
-	numSelecionados integer;
-begin
-	-- FECHAR INSCRIÇÕES
-	numSelecionados := SelecionarParticipantes(pModProva,pSexoProva,pDistProva);
-	if numSelecionados != 0 then
-		CriarSeries(pModProva,pSexoProva,pDistProva,numSelecionados);
-		AlocarParticipantesSelecionados(pModProva,pSexoProva,pDistProva,numSelecionados);
-	end if;
-end;
 /
 
 /**********************************************************************
@@ -243,7 +82,7 @@ end;
 *		pDataTorneio		- ENTRADA	- DATA
 *			Data de ocorrência de torneio supracitado
 **********************************************************************/
-create or replace procedure FazerInscricao (pNumInscr in integer, pModProva in integer,
+create or replace procedure FazerInscricao (pNumInscr in integer, pModProva in integer,			-- TESTADO
 					pSexoProva in char, pDistProva in number, pMelhorTempo in number,
 		pNomeTorneio in varchar2, pLocalTorneio in varchar2, pDataTorneio in varchar2)
 as
@@ -253,6 +92,169 @@ begin
 		values(pNumInscr,pModProva,pSexoProva,pDistProva,pMelhorTempo,pNomeTorneio,
 													pLocalTorneio,pDataTorneio,'N');
 end;
+/
+
+/**********************************************************************
+*	PROCEDURE:
+*		CriarSeries
+*	DESCRIÇÃO:
+*   	Cria séries necessárias pra realizção de uma prova, segundo a
+*		quantidade de participantes selecionados (estritamente positivo)
+*	PARÂMETROS:
+*		pModProva			- ENTRADA	- INTEIRO
+*			Número da modalidade (ver tabela Modalidade) da prova
+*		pSexoProva			- ENTRADA	- CARACTER
+*			'M' ou 'F', sexo dos participantes da prova
+*		pDistProva			- ENTRADA	- NÚMERO
+*			Distância de percurso da prova, em metros
+*		pNumParticipantes	- ENTRADA	- NÚMERO
+*			Número de participantes total que participará na prova
+*														(de 0 a 64)
+**********************************************************************/
+create or replace procedure CriarSeries	(pModProva in integer, pSexoProva in char, pDistProva in number, 				-- TESTADO
+										pNumParticipantes in integer)
+as
+	numSeries integer;
+begin
+	if pNumParticipantes <= 0 then
+		raise_application_error(-20002,'Número de participantes da prova inválido');
+	end if;
+	numSeries := ceil(pNumParticipantes / 8);
+	for i in 1..numSeries loop
+		insert into Serie(NumMod,SexoProva,DistProva,Etapa,Seq,Status)
+			values(pModProva,pSexoProva,pDistProva,1,i,0);
+	end loop;
+	if numSeries > 4 then
+		numSeries := 4;
+	end if;
+	for i in 1..numSeries loop
+		insert into Serie(NumMod,SexoProva,DistProva,Etapa,Seq,Status)
+			values(pModProva,pSexoProva,pDistProva,2,i,0);
+	end loop;
+	insert into Serie(NumMod,SexoProva,DistProva,Etapa,Seq,Status)
+		values(pModProva,pSexoProva,pDistProva,3,1,0);
+end CriarSeries;
+/
+
+/**********************************************************************
+*	PROCEDURE:
+*		AlocarParticipantesSelecionados
+*	DESCRIÇÃO:
+*   	Coloca participantes selecionados em uma prova em séries e
+*		raias aleatórias da etapa semifinal.
+*	PARÂMETROS:
+*		pModProva			- ENTRADA	- INTEIRO
+*			Número da modalidade (ver tabela Modalidade) da prova
+*		pSexoProva			- ENTRADA	- CARACTER
+*			'M' ou 'F', sexo dos participantes da prova
+*		pDistProva			- ENTRADA	- NÚMERO
+*			Distância de percurso da prova, em metros
+*		pNumParticipantes	- ENTRADA	- NÚMERO
+*			Número de participantes total que participará na prova
+*														(de 0 a 64)
+**********************************************************************/
+drop table RaiasAAlocar;
+create table RaiasAAlocar (
+	Ident		number(2)	primary key,
+	SeqSerie	number(1)	not null,
+	NumRaia		number(1)	not null
+);
+create or replace procedure AlocarSelecionados	(pModProva in integer, pSexoProva in char,				-- TESTADO
+										pDistProva in number, pNumParticipantes in integer)
+as
+	numSeries integer;
+	numRaiasExtras integer; -- Número de raias que serão usadas na última série
+	raiaLimite integer;
+	rSeed  BINARY_INTEGER;
+	linhaInscrito Inscrito%rowtype;
+	raiaRNG integer;
+	serieRNG integer;
+	linhaRNG integer;
+	linhasRestantes integer;
+	
+	cursor cursorInscrito
+		is
+		select *
+		from Inscrito
+		where Aprovado = 'S';
+begin
+	rSeed := TO_NUMBER(TO_CHAR(SYSDATE,'YYYYDDMMSS'));
+	dbms_random.initialize(val => rSeed);
+	
+	numSeries := ceil(pNumParticipantes / 8);
+	numRaiasExtras := pNumParticipantes mod 8;
+	if numRaiasExtras = 0 then -- Se a divisão é exata a última série possui 8 raias
+		numRaiasExtras := 8;
+	end if;
+	
+	delete from RaiasAAlocar; -- Limpa tabela auxiliar para utilizá-la
+	
+	for percorreSeries in 1..numSeries loop
+		if percorreSeries = numSeries then -- última série -> preenchem-se algumas raias
+			raiaLimite := numRaiasExtras;
+		else -- primeiras séries -> preenchem-se todas as raias
+			raiaLimite := 8;
+		end if;
+		
+		for percorreRaias in 1..raiaLimite loop
+			insert into RaiasAAlocar(Ident,SeqSerie,NumRaia)
+				values((percorreSeries-1)*8+percorreRaias,percorreSeries,percorreRaias);
+		end loop;
+	end loop;
+	
+	linhasRestantes := pNumParticipantes;
+	open cursorInscrito;
+	loop
+		fetch cursorInscrito into linhaInscrito;
+		exit when cursorInscrito%notfound;
+		
+		linhaRNG := floor(dbms_random.value(1,linhasRestantes+1));
+		select SeqSerie, NumRaia into serieRNG, raiaRNG
+		from RaiasAAlocar casoATestar
+		where linhaRNG-1 =	(select count(*) as qtdMenores
+							from RaiasAAlocar
+							where Ident < casoATestar.Ident);
+		insert into Participa(NumInscr,NumMod,SexoProva,DistProva,EtapaSerie,SeqSerie,Tempo,Situacao,Raia)
+			values(linhaInscrito.NumInscr,pModProva,pSexoProva,pDistProva,1,serieRNG,NULL,NULL,raiaRNG);
+		delete from RaiasAAlocar
+			where	SeqSerie = serieRNG and
+					NumRaia = raiaRNG;
+		linhasRestantes := linhasRestantes - 1;
+	end loop;
+	close cursorInscrito;
+	
+	dbms_random.terminate;
+end AlocarSelecionados;
+/
+
+/**********************************************************************
+*	PROCEDURE:
+*		FinalizarInscricoes
+*	DESCRIÇÃO:
+*   	Finaliza as inscrições de uma prova, impedindo inscrição
+*		futura nela, selecionando os participantes, criando
+*		automaticamente todas suas séries e alocando cada participante
+*		em uma raia da etapa eliminatória.
+*	PARÂMETROS:
+*		pModProva			- ENTRADA	- INTEIRO
+*			Número da modalidade (ver tabela Modalidade) da prova
+*		pSexoProva			- ENTRADA	- CARACTER
+*			'M' ou 'F', sexo dos participantes da prova
+*		pDistProva			- ENTRADA	- NÚMERO
+*			Distância de percurso da prova, em metros
+**********************************************************************/
+create or replace procedure FinalizarInscricoes (pModProva in integer, pSexoProva in char,					-- COMPLETAR/TESTAR
+																	pDistProva in number)
+as
+	numSelecionados integer;
+begin
+	-- FECHAR INSCRIÇÕES
+	numSelecionados := SelecionarParticipantes(pModProva,pSexoProva,pDistProva);
+	if numSelecionados > 0 then
+		CriarSeries(pModProva,pSexoProva,pDistProva,numSelecionados);
+		AlocarParticipantesSelecionados(pModProva,pSexoProva,pDistProva,numSelecionados);
+	end if;
+end FinalizarInscricoes;
 /
 
 /**********************************************************************
@@ -302,7 +304,7 @@ begin
 			Etapa = pEtapaSerie and
 			Seq = sequenciaSerie;
 	if statusSerie = 1 then -- Série já foi executada
-		-- FAIL
+		raise_application_error(-20003,'Série já foi executada e foi marcada como inalterável');
 	end if;
 	
 	update Participa
@@ -315,9 +317,9 @@ begin
 	
 	linhasAtualizadas := sql%rowcount;
 	if linhasAtualizadas = 0 then
-		-- FAIL
+		raise_application_error(-20004,'Erro: Competidor ou etapa da série inválidos');
 	end if;
-end;
+end CadastrarTempo;
 /
 
 /**********************************************************************
@@ -367,7 +369,7 @@ begin
 			Etapa = pEtapaSerie and
 			Seq = sequenciaSerie;
 	if statusSerie = 1 then -- Série já foi executada
-		-- FAIL
+		raise_application_error(-20003,'Série já foi executada e foi marcada como inalterável');
 	end if;
 	
 	if pSituacao = 0 then
@@ -388,13 +390,13 @@ begin
 						DistProva = pDistProva and
 						EtapaSerie = pEtapaSerie;
 		else -- pSituacao passada é inválida!
-			-- FAIL
+			raise_application_error(-20005,'Número de situação passado é inválido (deve ser de 1 a 2)');
 		end if;
 	end if;
 				
 	linhasAtualizadas := sql%rowcount;
 	if linhasAtualizadas = 0 then
-		-- FAIL
+		raise_application_error(-20006,'Série já foi executada e foi marcada como inalterável');
 	end if;
-end;
+end CadastrarSituacao;
 /
