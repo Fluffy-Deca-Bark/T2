@@ -37,6 +37,43 @@ end ObterDataEtapa;
 
 /**********************************************************************
 *	FUNÇÃO:
+*		CriarCompetidor
+*	DESCRIÇÃO:
+*   	Cadastra um competidor no BD
+*	PARÂMETROS:
+*		pNome	- ENTRADA	- STRING
+*			Nome do competidor
+*		pSexo	- ENTRADA	- CARACTER
+*			'M' ou 'F', sexo do competidor
+*		pAno	- ENTRADA	- INTEIRO
+*			Ano de nascimento do competidor
+*	RETORNO:
+*		INTEIRO - Retorna o número de inscrição do competidor criado
+**********************************************************************/
+create or replace function CriarCompetidor (pNome in varchar2, pSexo in char, pAno in integer)		-- TESTADO
+return integer as
+	inscr integer;
+	numCompetidores integer;
+begin
+	select count(*) into numCompetidores
+		from Competidor;
+	
+	if (numCompetidores = 0) then
+		inscr := 1;
+	else
+		select max(NumInscr) into inscr
+			from Competidor;
+		inscr := inscr + 1;
+	end if;
+	
+	insert into Competidor(NumInscr,Nome,Sexo,AnoNasc)
+		values(inscr,pNome,pSexo,pAno);
+	return inscr;
+end;
+/
+
+/**********************************************************************
+*	FUNÇÃO:
 *		SelecionarParticipantes
 *	DESCRIÇÃO:
 *   	Seleciona melhores participantes inscritos em uma prova e
@@ -51,7 +88,7 @@ end ObterDataEtapa;
 *	RETORNO:
 *		INTEIRO - Retorna o número de participates selecionados
 **********************************************************************/
-create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,					-- TESTADO
+create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,					-- TESTADO-ERRO EM CASO DE EMPATE DO SEXAGÉSIMO QUARTO
 													pDistProva in number)
 return integer as
 	linhaInscritoSelecionado Inscrito%rowtype;
@@ -88,41 +125,4 @@ begin
 	
 	return numSelecionados;
 end SelecionarParticipantes;
-/
-
-/**********************************************************************
-*	FUNÇÃO:
-*		CriarCompetidor
-*	DESCRIÇÃO:
-*   	Cadastra um competidor no BD
-*	PARÂMETROS:
-*		pNome	- ENTRADA	- STRING
-*			Nome do competidor
-*		pSexo	- ENTRADA	- CARACTER
-*			'M' ou 'F', sexo do competidor
-*		pAno	- ENTRADA	- INTEIRO
-*			Ano de nascimento do competidor
-*	RETORNO:
-*		INTEIRO - Retorna o número de inscrição do competidor criado
-**********************************************************************/
-create or replace function CriarCompetidor (pNome in varchar2, pSexo in char, pAno in integer)		-- TESTADO
-return integer as
-	inscr integer;
-	numCompetidores integer;
-begin
-	select count(*) into numCompetidores
-		from Competidor;
-	
-	if (numCompetidores = 0) then
-		inscr := 1;
-	else
-		select max(NumInscr) into inscr
-			from Competidor;
-		inscr := inscr + 1;
-	end if;
-	
-	insert into Competidor(NumInscr,Nome,Sexo,AnoNasc)
-		values(inscr,pNome,pSexo,pAno);
-	return inscr;
-end;
 /
