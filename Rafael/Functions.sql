@@ -88,36 +88,36 @@ end;
 *	RETORNO:
 *		INTEIRO - Retorna o número de participates selecionados
 **********************************************************************/
-create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,					-- TESTADO-ERRO EM CASO DE EMPATE DO SEXAGÉSIMO QUARTO
+create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,					-- TESTADO
 													pDistProva in number)
 return integer as
-	linhaInscritoSelecionado Inscrito%rowtype;
+	inscicaoSelecionada Inscrito.NumInscr%type;
+  numLinha integer;
 	numSelecionados integer;
 	
 	cursor cursorInscritoMenoresTempos (pModProva integer, pSexoProva char, pDistProva number, pQtdMelhores integer)
 	is
-	select *
-	from Inscrito tempoEmTeste
-	where	NumMod = pModProva and
-			SexoProva = pSexoProva and
-			DistProva = pDistProva and
-			pQtdMelhores >	(select count(*) as qtdTemposMelhores
-							from Inscrito
-							where	NumMod = pModProva and
-									SexoProva = pSexoProva and
-									DistProva = pDistProva and
-									MelhorTempo < tempoEmTeste.MelhorTempo);
+	(select *
+		from (
+		  select NumInscr,
+		  row_number() over (order by MelhorTempo, NumInscr) posicao
+		  from Inscrito
+		  where	NumMod = pModProva and
+				SexoProva = pSexoProva and
+				DistProva = pDistProva
+		)
+		where posicao <= PqTDmELHORES);	
 begin
 	numSelecionados := 0;
 	
 	open cursorInscritoMenoresTempos(pModProva,pSexoProva,pDistProva,64);
 	loop
-		fetch cursorInscritoMenoresTempos into linhaInscritoSelecionado;
+		fetch cursorInscritoMenoresTempos into inscicaoSelecionada, numLinha;
 		exit when cursorInscritoMenoresTempos%notfound;
 		
 		update Inscrito
 			set Aprovado = 'S'
-			where NumInscr = linhaInscritoSelecionado.NumInscr;
+			where NumInscr = inscicaoSelecionada;
 		
 		numSelecionados := numSelecionados + 1;
 	end loop;
