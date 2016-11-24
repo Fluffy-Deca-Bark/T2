@@ -10,10 +10,18 @@ drop table modalidade cascade constraints;
 DROP TABLE COMPETIDOR cascade constraints;
 DROP TABLE PARTICIPA cascade constraints;
 DROP TABLE PATROCINADO cascade constraints;
-DROP TABLE DATAETAPA cascade constraints;  
+DROP TABLE DATAETAPA cascade constraints;
+drop table RaiasAAlocar cascade constraints;
 ------------------
 -- CREATE TABLE --
 ------------------
+drop table RaiasAAlocar cascade constraints;
+create table RaiasAAlocar (
+	Ident		number(2)	primary key,
+	SeqSerie	number(1)	not null,
+	NumRaia		number(1)	not null
+);
+
 
 drop table modalidade cascade constraints;
 create table modalidade
