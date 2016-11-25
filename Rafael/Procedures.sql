@@ -1,4 +1,35 @@
 -- PROCEDURES
+
+/**********************************************************************
+*   PROCEDURE:
+*       AbrirInscricoes
+*   DESCRIÇÃO:
+*       Abre as inscrições em todas as prova, permitindo a inscrição de
+*		competidores nelas. Não funciona caso inscrições já tenham sido
+*		anteriormente abertas e fechadas.
+**********************************************************************/
+create or replace procedure AbrirInscricoes               											  -- TESTAR
+as
+	inscricoes 		integer;
+begin
+	select Valor into inscricoes
+		from Globais
+		where Nome = 'inscricoes';
+	if inscricoes = 1 then
+		raise_application_error(-20010,'As inscrições já foram abertas!');
+	end if;
+	if inscricoes = 0 then
+		raise_application_error(-20011,'As inscrições já foram finalizadas! Não podem ser reabertas!');
+	end if;
+	if inscricoes != -1 then
+		raise_application_error(-20012,'Erro desconhecido: Configuração "inscricoes" com valor inválido');
+	end if;
+	
+	update Globais
+		set Valor = 1
+		where Nome = 'inscricoes';
+end AbrirInscricoes;
+/
  
 /**********************************************************************
 *   PROCEDURE:
@@ -62,7 +93,8 @@ end;
 *   PROCEDURE:
 *       FazerInscricao
 *   DESCRIÇÃO:
-*       Inscreve um competidor numa prova
+*       Inscreve um competidor numa prova.
+*		Não funciona se inscrições estiverem finalizadas.
 *   PARÂMETROS:
 *       pNumInscr   - ENTRADA   - INTEIRO
 *           Número de inscrição do competidor
@@ -82,11 +114,24 @@ end;
 *       pDataTorneio        - ENTRADA   - DATA
 *           Data de ocorrência de torneio supracitado
 **********************************************************************/
-create or replace procedure FazerInscricao (pNumInscr in integer, pModProva in integer,         -- TESTADO
+create or replace procedure FazerInscricao (pNumInscr in integer, pModProva in integer,         -- RETESTAR
                     pSexoProva in char, pDistProva in number, pMelhorTempo in number,
         pNomeTorneio in varchar2, pLocalTorneio in varchar2, pDataTorneio in varchar2)
 as
+	inscricoes integer;
 begin
+	select Valor into inscricoes
+		from Globais
+		where Nome = 'inscricoes';
+	if inscricoes = 0 then
+		raise_applcation_error(-20007,'A inscrição não pôde ser feita porque as inscrições já foram finalizadas');
+	end if;
+	if inscricoes = -1 then
+		raise_applcation_error(-20013,'A inscrição não pôde ser feita porque as inscrições ainda não foram abertas');
+	end if;
+	if inscricoes != 1 then
+		raise_application_error(-20014,'Erro desconhecido: Configuração "inscricoes" com valor inválido');
+	end if;
     insert into Inscrito(NumInscr,NumMod,SexoProva,DistProva,MelhorTempo,NomeTorneio,
                                                     LocalTorneio,DataTorneio,Aprovado)
         values(pNumInscr,pModProva,pSexoProva,pDistProva,pMelhorTempo,pNomeTorneio,
@@ -153,13 +198,7 @@ end CriarSeries;
 *           Número de participantes total que participará na prova
 *                                                       (de 0 a 64)
 **********************************************************************/
-drop table RaiasAAlocar;
-create table RaiasAAlocar (
-    Ident       number(2)   primary key,
-    SeqSerie    number(1)   not null,
-    NumRaia     number(1)   not null
-);
-create or replace procedure AlocarSelecionados  (pModProva in integer, pSexoProva in char,              -- TESTADO
+create or replace procedure AlocarSelecionados  (pModProva in integer, pSexoProva in char,              -- RETESTAR
                                         pDistProva in number, pNumParticipantes in integer)
 as
     numSeries integer;
@@ -172,11 +211,11 @@ as
     linhaRNG integer;
     linhasRestantes integer;
      
-    cursor cursorInscrito
+    cursor cursorInscritoAprovados
         is
         select *
-        from Inscrito
-        where Aprovado = 'S';
+			from Inscrito
+			where Aprovado = 'S';
 begin
     rSeed := TO_NUMBER(TO_CHAR(SYSDATE,'YYYYDDMMSS'));
     dbms_random.initialize(val => rSeed);
@@ -203,10 +242,10 @@ begin
     end loop;
      
     linhasRestantes := pNumParticipantes;
-    open cursorInscrito;
+    open cursorInscritoAprovados;
     loop
-        fetch cursorInscrito into linhaInscrito;
-        exit when cursorInscrito%notfound;
+        fetch cursorInscritoAprovados into linhaInscrito;
+        exit when cursorInscritoAprovados%notfound;
          
         linhaRNG := floor(dbms_random.value(1,linhasRestantes+1));
         select SeqSerie, NumRaia into serieRNG, raiaRNG
@@ -221,7 +260,7 @@ begin
                     NumRaia = raiaRNG;
         linhasRestantes := linhasRestantes - 1;
     end loop;
-    close cursorInscrito;
+    close cursorInscritoAprovados;
      
     dbms_random.terminate;
 end AlocarSelecionados;
@@ -229,12 +268,12 @@ end AlocarSelecionados;
  
 /**********************************************************************
 *   PROCEDURE:
-*       FinalizarInscricoes
+*       FinalizarInscricoesProva
 *   DESCRIÇÃO:
-*       Finaliza as inscrições de uma prova, impedindo inscrição
-*       futura nela, selecionando os participantes, criando
-*       automaticamente todas suas séries e alocando cada participante
-*       em uma raia da etapa eliminatória.
+*       Finaliza as inscrições de uma prova, selecionando os
+*		participantes, criando automaticamente todas suas séries e
+*		alocando cada participante em uma raia da etapa eliminatória.
+*		Não funciona se inscrições estiverem finalizadas.
 *   PARÂMETROS:
 *       pModProva           - ENTRADA   - INTEIRO
 *           Número da modalidade (ver tabela Modalidade) da prova
@@ -243,17 +282,80 @@ end AlocarSelecionados;
 *       pDistProva          - ENTRADA   - NÚMERO
 *           Distância de percurso da prova, em metros
 **********************************************************************/
-create or replace procedure FinalizarInscricoes (pModProva in integer, pSexoProva in char,                  -- COMPLETAR/TESTAR
+create or replace procedure FinalizarInscricoesProva (pModProva in integer, pSexoProva in char,                  -- RETESTAR
                                                                     pDistProva in number)
 as
     numSelecionados integer;
+	inscricoes 	integer;
 begin
-    -- FECHAR INSCRIÇÕES
-    numSelecionados := SelecionarParticipantes(pModProva,pSexoProva,pDistProva);
-    if numSelecionados > 0 then
-        CriarSeries(pModProva,pSexoProva,pDistProva,numSelecionados);
-        AlocarParticipantesSelecionados(pModProva,pSexoProva,pDistProva,numSelecionados);
-    end if;
+	select Valor into inscricoes
+		from Globais
+		where Nome = 'inscricoes';
+	if inscricoes = 0 then
+		raise_appilcation_error(-20008,'As inscrições já foram finalizadas');
+	end if;
+	if inscricoes = -1 then
+		raise_appilcation_error(-20015,'As inscrições ainda nao foram abertas');
+	end if;
+	if inscricoes != 1 then
+		raise_application_error(-20016,'Erro desconhecido: Configuração "inscricoes" com valor inválido');
+	end if;
+    
+	numSelecionados := SelecionarInscritos(pModProva,pSexoProva,pDistProva);
+	if numSelecionados > 0 then
+		CriarSeries(pModProva,pSexoProva,pDistProva,numSelecionados);
+		AlocarSelecionados(pModProva,pSexoProva,pDistProva,numSelecionados);
+	end if;
+	
+end FinalizarInscricoesProva;
+/
+
+/**********************************************************************
+*   PROCEDURE:
+*       FinalizarInscricoes
+*   DESCRIÇÃO:
+*       Finaliza as inscrições de todas as prova, selecionando os
+*		participantes de cada, criando automaticamente todas as séries e
+*		alocando cada participante em uma raia de cada etapa eliminatória.
+*		Por fim, encerra as inscrições.
+*		Não funciona se inscrições estiverem finalizadas.
+**********************************************************************/
+create or replace procedure FinalizarInscricoes               				-- RETESTAR
+as
+	inscricoes 	integer;
+	linhaProva		Prova%rowtype;
+	
+	cursor cursorProva
+		is
+		select *
+		from Prova;
+begin
+	select Valor into inscricoes
+		from Globais
+		where Nome = 'inscricoes';
+	if inscricoes = 0 then
+		raise_appilcation_error(-20009,'As inscrições já foram finalizadas');
+	end if;
+	if inscricoes = -1 then
+		raise_appilcation_error(-20017,'As inscrições ainda nao foram abertas');
+	end if;
+	if inscricoes != 1 then
+		raise_application_error(-20018,'Erro desconhecido: Configuração "inscricoes" com valor inválido');
+	end if;
+    
+	open cursorProva;
+	loop
+		fetch cursorProva into linhaProva;
+		exit when cursorProva%notfound;
+		
+		FinalizarInscricoesProva(linhaProva.NumMod,linhaProva.Sexo,linhaProva.Dist);
+	end loop;
+	close cursorProva;
+	
+	update Globais
+		set Valor = 0
+		where Nome = 'inscricoes';
+	
 end FinalizarInscricoes;
 /
  
@@ -400,3 +502,29 @@ begin
     end if;
 end CadastrarSituacao;
 /
+
+/**********************************************************************
+*   PROCEDURE:
+*       FinalizarEtapa
+*   DESCRIÇÃO:
+*       Cadastra (ou substitui) a participação de um competidor numa
+*       série de uma etapa de uma prova como "NULO" (ainda indefinida),
+*       "DESCLASSIFICADO" ou "AUSENTE" (Para cadastrar como concluída,
+*       deve-se usar a procedure "CadastrarTempo"). Não funciona se a
+*       série já foi dada como "executada".
+*   PARÂMETROS:
+*       pNumInscr   - ENTRADA   - INTEIRO
+*           Número de inscrição do competidor
+*       pModProva   - ENTRADA   - INTEIRO
+*           Número da modalidade (ver tabela Modalidade) da prova
+*       pSexoProva  - ENTRADA   - CARACTER
+*           'M' ou 'F', sexo dos participantes da prova
+*       pDistProva  - ENTRADA   - NÚMERO
+*           Distância de percurso da prova, em metros
+*       pEtapaSerie - ENTRADA   - INTEIRO
+*           Número de 1 a 3 que representa a etapa da prova
+*                           (1- eliminatória, 2- semifinal, 3- final)
+*       pSituacao   - ENTRADA   - INTEIRO
+*           Número que representa nova situação do competidor:
+*           0- NULO, 1- DESCLASSIFICADO, 2- AUSENTE
+**********************************************************************/
