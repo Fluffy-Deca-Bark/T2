@@ -74,9 +74,9 @@ end;
 
 /**********************************************************************
 *	FUNÇÃO:
-*		SelecionarParticipantes
+*		SelecionarInscritos
 *	DESCRIÇÃO:
-*   	Seleciona melhores participantes inscritos em uma prova e
+*   	Seleciona os 64 melhores competidores inscritos em uma prova e
 *		muda o atributo "Aprovado" da tabela Inscrito deles para 'S'
 *	PARÂMETROS:
 *		pModProva	- ENTRADA	- INTEIRO
@@ -88,8 +88,8 @@ end;
 *	RETORNO:
 *		INTEIRO - Retorna o número de participates selecionados
 **********************************************************************/
-create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,					-- TESTADO
-													pDistProva in number)
+create or replace function SelecionarInscritos	(pModProva in integer, pSexoProva in char,					-- RETESTAR
+												pDistProva in number)
 return integer as
 	inscicaoSelecionada Inscrito.NumInscr%type;
   numLinha integer;
@@ -106,7 +106,7 @@ return integer as
 				SexoProva = pSexoProva and
 				DistProva = pDistProva
 		)
-		where posicao <= PqTDmELHORES);	
+		where posicao <= pQtdMelhores);
 begin
 	numSelecionados := 0;
 	
@@ -124,5 +124,5 @@ begin
 	close cursorInscritoMenoresTempos;
 	
 	return numSelecionados;
-end SelecionarParticipantes;
+end SelecionarInscritos;
 /
