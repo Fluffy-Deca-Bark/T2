@@ -10,10 +10,26 @@ drop table modalidade cascade constraints;
 DROP TABLE COMPETIDOR cascade constraints;
 DROP TABLE PARTICIPA cascade constraints;
 DROP TABLE PATROCINADO cascade constraints;
-DROP TABLE DATAETAPA cascade constraints;  
+DROP TABLE DATAETAPA cascade constraints; 
+drop table RaiasAAlocar cascade constraints;
 ------------------
 -- CREATE TABLE --
 ------------------
+
+drop table Globais cascade constraints;
+create table Globais (
+  Nome  varchar2(30)  primary key,
+  Valor number        null
+);
+
+
+drop table RaiasAAlocar cascade constraints;
+create table RaiasAAlocar (
+	Ident		number(2)	primary key,
+	SeqSerie	number(1)	not null,
+	NumRaia		number(1)	not null
+);
+
 
 drop table modalidade cascade constraints;
 create table modalidade
@@ -189,7 +205,12 @@ insert into modalidade
   values(5,'Costas');
 insert into modalidade
   values(6,'Cachorrinho');
-  
+ 
+
+---------------------------------------------------------------------------------- INICIALIZAÇÕES ----------------------------------------------------------------------
+insert into Globais(Nome, Valor)
+  values('inscricoes', -1);
+
 ---------------------------------------------------------------------------------- DECLARAÇÃO DE PROCEDURES, FUNÇÕES  E TRIGGERS ----------------------------------------------------------------------
 
 /**********************************************************************
@@ -380,12 +401,12 @@ declare
   numTorneio integer;
   tempoTotal number;
 begin
-  for i in 1..65 loop
+  for i in 1..67 loop
     ident := CriarCompetidor('Competidor '||i,'M',1997);
     AdicionarPatrocinio(ident,'Padaria do Ze filial '||i);
     AdicionarPatrocinio(ident,'Selaria texana rua '||i);
     numTorneio := (i mod 7) + 1;
-    tempoTotal := (i-33)*(i-33)+1;
+    tempoTotal := (i-34)*(i-34)+1;
     if tempoTotal >= 1000 then
       tempoTotal := 999.99;
     end if;
@@ -410,36 +431,36 @@ end;
 *	RETORNO:
 *		INTEIRO - Retorna o número de participates selecionados
 **********************************************************************/
-create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,					-- TESTADO
+create or replace function SelecionarParticipantes	(pModProva in integer, pSexoProva in char,					-- RETESTAR
 													pDistProva in number)
 return integer as
-	linhaInscritoSelecionado Inscrito%rowtype;
+	inscicaoSelecionada Inscrito.NumInscr%type;
+  numLinha integer;
 	numSelecionados integer;
 	
 	cursor cursorInscritoMenoresTempos (pModProva integer, pSexoProva char, pDistProva number, pQtdMelhores integer)
 	is
-	select *
-	from Inscrito tempoEmTeste
-	where	NumMod = pModProva and
-			SexoProva = pSexoProva and
-			DistProva = pDistProva and
-			pQtdMelhores >=	(select count(*) as qtdTemposMelhores
-							from Inscrito
-							where	NumMod = pModProva and
-									SexoProva = pSexoProva and
-									DistProva = pDistProva and
-									MelhorTempo <= tempoEmTeste.MelhorTempo);
+	(select *
+		from (
+		  select NumInscr,
+		  row_number() over (order by MelhorTempo, NumInscr) posicao
+		  from Inscrito
+		  where	NumMod = pModProva and
+				SexoProva = pSexoProva and
+				DistProva = pDistProva
+		)
+		where posicao <= PqTDmELHORES);	
 begin
 	numSelecionados := 0;
 	
 	open cursorInscritoMenoresTempos(pModProva,pSexoProva,pDistProva,64);
 	loop
-		fetch cursorInscritoMenoresTempos into linhaInscritoSelecionado;
+		fetch cursorInscritoMenoresTempos into inscicaoSelecionada, numLinha;
 		exit when cursorInscritoMenoresTempos%notfound;
 		
 		update Inscrito
 			set Aprovado = 'S'
-			where NumInscr = linhaInscritoSelecionado.NumInscr;
+			where NumInscr = inscicaoSelecionada;
 		
 		numSelecionados := numSelecionados + 1;
 	end loop;
@@ -493,7 +514,7 @@ end CriarSeries;
 
 /**********************************************************************
 *	PROCEDURE:
-*		AlocarParticipantesSelecionados
+*		AlocarSelecionados
 *	DESCRIÇÃO:
 *   	Coloca participantes selecionados em uma prova em séries e
 *		raias aleatórias da etapa semifinal.
@@ -508,112 +529,157 @@ end CriarSeries;
 *			Número de participantes total que participará na prova
 *														(de 0 a 64)
 **********************************************************************/
-drop table RaiasAAlocar;
-create table RaiasAAlocar (
-	Ident		number(2)	primary key,
-	SeqSerie	number(1)	not null,
-	NumRaia		number(1)	not null
-);
-create or replace procedure AlocarSelecionados	(pModProva in integer, pSexoProva in char,				-- TESTAR
-										pDistProva in number, pNumParticipantes in integer)
+create or replace procedure AlocarSelecionados  (pModProva in integer, pSexoProva in char,              -- TESTADO
+                                        pDistProva in number, pNumParticipantes in integer)
 as
-	numSeries integer;
-	numRaiasExtras integer; -- Número de raias que serão usadas na última série
-	raiaLimite integer;
-	rSeed  BINARY_INTEGER;
-	linhaInscrito Inscrito%rowtype;
-	raiaRNG integer;
-	serieRNG integer;
-	linhaRNG integer;
-	linhasRestantes integer;
-	
-	cursor cursorInscrito
-		is
-		select *
-		from Inscrito
-		where Aprovado = 'S';
+    numSeries integer;
+    numRaiasExtras integer; -- Número de raias que serão usadas na última série
+    raiaLimite integer;
+    rSeed  BINARY_INTEGER;
+    linhaInscrito Inscrito%rowtype;
+    raiaRNG integer;
+    serieRNG integer;
+    linhaRNG integer;
+    linhasRestantes integer;
+     
+    cursor cursorInscritoAprovados
+        is
+        select *
+        from Inscrito
+        where Aprovado = 'S';
 begin
-	rSeed := TO_NUMBER(TO_CHAR(SYSDATE,'YYYYDDMMSS'));
-	dbms_random.initialize(val => rSeed);
-	
-	numSeries := ceil(pNumParticipantes / 8);
-	numRaiasExtras := pNumParticipantes mod 8;
-	if numRaiasExtras = 0 then -- Se a divisão é exata a última série possui 8 raias
-		numRaiasExtras := 8;
-	end if;
-	
-	delete from RaiasAAlocar; -- Limpa tabela auxiliar para utilizá-la
-	
-	for percorreSeries in 1..numSeries loop
-		if percorreSeries = numSeries then -- última série -> preenchem-se algumas raias
-			raiaLimite := numRaiasExtras;
-		else -- primeiras séries -> preenchem-se todas as raias
-			raiaLimite := 8;
-		end if;
-		
-		for percorreRaias in 1..raiaLimite loop
-			insert into RaiasAAlocar(Ident,SeqSerie,NumRaia)
-				values((percorreSeries-1)*8+percorreRaias,percorreSeries,percorreRaias);
-		end loop;
-	end loop;
-	
-	linhasRestantes := pNumParticipantes;
-	open cursorInscrito;
-	loop
-		fetch cursorInscrito into linhaInscrito;
-		exit when cursorInscrito%notfound;
-		
-		linhaRNG := floor(dbms_random.value(1,linhasRestantes+1));
-		select SeqSerie, NumRaia into serieRNG, raiaRNG
-		from RaiasAAlocar casoATestar
-		where linhaRNG-1 =	(select count(*) as qtdMenores
-							from RaiasAAlocar
-							where Ident < casoATestar.Ident);
-		insert into Participa(NumInscr,NumMod,SexoProva,DistProva,EtapaSerie,SeqSerie,Tempo,Situacao,Raia)
-			values(linhaInscrito.NumInscr,pModProva,pSexoProva,pDistProva,1,serieRNG,NULL,NULL,raiaRNG);
-		delete from RaiasAAlocar
-			where	SeqSerie = serieRNG and
-					NumRaia = raiaRNG;
-		linhasRestantes := linhasRestantes - 1;
-	end loop;
-	close cursorInscrito;
-	
-	dbms_random.terminate;
+    rSeed := TO_NUMBER(TO_CHAR(SYSDATE,'YYYYDDMMSS'));
+    dbms_random.initialize(val => rSeed);
+     
+    numSeries := ceil(pNumParticipantes / 8);
+    numRaiasExtras := pNumParticipantes mod 8;
+    if numRaiasExtras = 0 then -- Se a divisão é exata a última série possui 8 raias
+        numRaiasExtras := 8;
+    end if;
+     
+    delete from RaiasAAlocar; -- Limpa tabela auxiliar para utilizá-la
+     
+    for percorreSeries in 1..numSeries loop
+        if percorreSeries = numSeries then -- última série -> preenchem-se algumas raias
+            raiaLimite := numRaiasExtras;
+        else -- primeiras séries -> preenchem-se todas as raias
+            raiaLimite := 8;
+        end if;
+         
+        for percorreRaias in 1..raiaLimite loop
+            insert into RaiasAAlocar(Ident,SeqSerie,NumRaia)
+                values((percorreSeries-1)*8+percorreRaias,percorreSeries,percorreRaias);
+        end loop;
+    end loop;
+     
+    linhasRestantes := pNumParticipantes;
+    open cursorInscritoAprovados;
+    loop
+        fetch cursorInscritoAprovados into linhaInscrito;
+        exit when cursorInscritoAprovados%notfound;
+         
+        linhaRNG := floor(dbms_random.value(1,linhasRestantes+1));
+        select SeqSerie, NumRaia into serieRNG, raiaRNG
+        from RaiasAAlocar casoATestar
+        where linhaRNG-1 =  (select count(*) as qtdMenores
+                            from RaiasAAlocar
+                            where Ident < casoATestar.Ident);
+        insert into Participa(NumInscr,NumMod,SexoProva,DistProva,EtapaSerie,SeqSerie,Tempo,Situacao,Raia)
+            values(linhaInscrito.NumInscr,pModProva,pSexoProva,pDistProva,1,serieRNG,NULL,NULL,raiaRNG);
+        delete from RaiasAAlocar
+            where   SeqSerie = serieRNG and
+                    NumRaia = raiaRNG;
+        linhasRestantes := linhasRestantes - 1;
+    end loop;
+    close cursorInscritoAprovados;
+     
+    dbms_random.terminate;
 end AlocarSelecionados;
 /
 
 /**********************************************************************
-*	PROCEDURE:
-*		FinalizarInscricoes
-*	DESCRIÇÃO:
-*   	Finaliza as inscrições de uma prova, impedindo inscrição
-*		futura nela, selecionando os participantes, criando
-*		automaticamente todas suas séries e alocando cada participante
-*		em uma raia da etapa eliminatória.
-*	PARÂMETROS:
-*		pModProva			- ENTRADA	- INTEIRO
-*			Número da modalidade (ver tabela Modalidade) da prova
-*		pSexoProva			- ENTRADA	- CARACTER
-*			'M' ou 'F', sexo dos participantes da prova
-*		pDistProva			- ENTRADA	- NÚMERO
-*			Distância de percurso da prova, em metros
+*   PROCEDURE:
+*       FinalizarInscricoesProva
+*   DESCRIÇÃO:
+*       Finaliza as inscrições de uma prova, selecionando os
+*		participantes, criando automaticamente todas suas séries e
+*		alocando cada participante em uma raia da etapa eliminatória.
+*		Não funciona se inscrições estiverem finalizadas.
+*   PARÂMETROS:
+*       pModProva           - ENTRADA   - INTEIRO
+*           Número da modalidade (ver tabela Modalidade) da prova
+*       pSexoProva          - ENTRADA   - CARACTER
+*           'M' ou 'F', sexo dos participantes da prova
+*       pDistProva          - ENTRADA   - NÚMERO
+*           Distância de percurso da prova, em metros
 **********************************************************************/
-create or replace procedure FinalizarInscricoes (pModProva in integer, pSexoProva in char,					-- COMPLETAR/TESTAR
-																	pDistProva in number)
+create or replace procedure FinalizarInscricoesProva (pModProva in integer, pSexoProva in char,                  -- COMPLETAR/TESTAR
+                                                                    pDistProva in number)
 as
-	numSelecionados integer;
+    numSelecionados integer;
+	fimInscricoes 	integer;
 begin
-	-- FECHAR INSCRIÇÕES
+	select Valor into fimInscricoes
+		from Globais
+		where Nome = 'fimInscricoes';
+	if fimInscricoes = 1 then
+		raise_application_error(-20008,'As inscrições já foram finalizadas');
+	end if;
+    
 	numSelecionados := SelecionarParticipantes(pModProva,pSexoProva,pDistProva);
 	if numSelecionados > 0 then
 		CriarSeries(pModProva,pSexoProva,pDistProva,numSelecionados);
 		AlocarSelecionados(pModProva,pSexoProva,pDistProva,numSelecionados);
 	end if;
+	
+end FinalizarInscricoesProva;
+/
+
+/**********************************************************************
+*   PROCEDURE:
+*       FinalizarInscricoes
+*   DESCRIÇÃO:
+*       Finaliza as inscrições de todas as prova, selecionando os
+*		participantes de cada, criando automaticamente todas as séries e
+*		alocando cada participante em uma raia de cada etapa eliminatória.
+*		Por fim, encerra as inscrições.
+*		Não funciona se inscrições estiverem finalizadas.
+**********************************************************************/
+create or replace procedure FinalizarInscricoes               											  -- COMPLETAR/TESTAR
+as
+	fimInscricoes 	integer;
+	linhaProva		Prova%rowtype;
+	
+	cursor cursorProva
+		is
+		select *
+		from Prova;
+begin
+	select Valor into fimInscricoes
+		from Globais
+		where Nome = 'fimInscricoes';
+	if fimInscricoes = 1 then
+		raise_application_error(-20009,'As inscrições já foram finalizadas');
+	end if;
+    
+	open cursorProva;
+	loop
+		fetch cursorProva into linhaProva;
+		exit when cursorProva%notfound;
+		
+		FinalizarInscricoesProva(linhaProva.NumMod,linhaProva.Sexo,linhaProva.Dist);
+	end loop;
+	close cursorProva;
+	
+	update Globais
+		set Valor = 1
+		where Nome = 'fimInscricoes';
+	
 end FinalizarInscricoes;
 /
 
 begin
-  FinalizarInscricoes(1,'M',200.5);
+  FinalizarInscricoes;
 end;
 /
 
