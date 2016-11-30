@@ -124,10 +124,10 @@ begin
 		from Globais
 		where Nome = 'inscricoes';
 	if inscricoes = 0 then
-		raise_applcation_error(-20007,'A inscrição não pôde ser feita porque as inscrições já foram finalizadas');
+		raise_application_error(-20007,'A inscrição não pôde ser feita porque as inscrições já foram finalizadas');
 	end if;
 	if inscricoes = -1 then
-		raise_applcation_error(-20013,'A inscrição não pôde ser feita porque as inscrições ainda não foram abertas');
+		raise_application_error(-20013,'A inscrição não pôde ser feita porque as inscrições ainda não foram abertas');
 	end if;
 	if inscricoes != 1 then
 		raise_application_error(-20014,'Erro desconhecido: Configuração "inscricoes" com valor inválido');
@@ -249,10 +249,10 @@ begin
          
         linhaRNG := floor(dbms_random.value(1,linhasRestantes+1));
         select SeqSerie, NumRaia into serieRNG, raiaRNG
-        from RaiasAAlocar casoATestar
-        where linhaRNG-1 =  (select count(*) as qtdMenores
-                            from RaiasAAlocar
-                            where Ident < casoATestar.Ident);
+			from RaiasAAlocar casoATestar
+			where linhaRNG-1 =  (select count(*) as qtdMenores
+								from RaiasAAlocar
+								where Ident < casoATestar.Ident);
         insert into Participa(NumInscr,NumMod,SexoProva,DistProva,EtapaSerie,SeqSerie,Tempo,Situacao,Raia)
             values(linhaInscrito.NumInscr,pModProva,pSexoProva,pDistProva,1,serieRNG,NULL,NULL,raiaRNG);
         delete from RaiasAAlocar
@@ -265,7 +265,7 @@ begin
     dbms_random.terminate;
 end AlocarSelecionados;
 /
- 
+
 /**********************************************************************
 *   PROCEDURE:
 *       FinalizarInscricoesProva
@@ -292,10 +292,10 @@ begin
 		from Globais
 		where Nome = 'inscricoes';
 	if inscricoes = 0 then
-		raise_appilcation_error(-20008,'As inscrições já foram finalizadas');
+		raise_application_error(-20008,'As inscrições já foram finalizadas');
 	end if;
 	if inscricoes = -1 then
-		raise_appilcation_error(-20015,'As inscrições ainda nao foram abertas');
+		raise_application_error(-20015,'As inscrições ainda nao foram abertas');
 	end if;
 	if inscricoes != 1 then
 		raise_application_error(-20016,'Erro desconhecido: Configuração "inscricoes" com valor inválido');
@@ -334,10 +334,10 @@ begin
 		from Globais
 		where Nome = 'inscricoes';
 	if inscricoes = 0 then
-		raise_appilcation_error(-20009,'As inscrições já foram finalizadas');
+		raise_application_error(-20009,'As inscrições já foram finalizadas');
 	end if;
 	if inscricoes = -1 then
-		raise_appilcation_error(-20017,'As inscrições ainda nao foram abertas');
+		raise_application_error(-20017,'As inscrições ainda nao foram abertas');
 	end if;
 	if inscricoes != 1 then
 		raise_application_error(-20018,'Erro desconhecido: Configuração "inscricoes" com valor inválido');
@@ -419,7 +419,7 @@ begin
      
     linhasAtualizadas := sql%rowcount;
     if linhasAtualizadas = 0 then
-        raise_application_error(-20004,'Erro: Competidor ou etapa da série inválidos');
+        raise_application_error(-20004,'Erro: Competidor ou prova/etapa da série inválidos');
     end if;
 end CadastrarTempo;
 /
@@ -498,23 +498,20 @@ begin
                  
     linhasAtualizadas := sql%rowcount;
     if linhasAtualizadas = 0 then
-        raise_application_error(-20006,'Série já foi executada e foi marcada como inalterável');
+        raise_application_error(-20006,'Erro: Competidor ou prova/etapa da série inválidos');
     end if;
 end CadastrarSituacao;
 /
 
 /**********************************************************************
 *   PROCEDURE:
-*       FinalizarEtapa
+*       FinalizarSerie
 *   DESCRIÇÃO:
-*       Cadastra (ou substitui) a participação de um competidor numa
-*       série de uma etapa de uma prova como "NULO" (ainda indefinida),
-*       "DESCLASSIFICADO" ou "AUSENTE" (Para cadastrar como concluída,
-*       deve-se usar a procedure "CadastrarTempo"). Não funciona se a
-*       série já foi dada como "executada".
+*       Muda o status de uma série para "executada". Só funciona caso
+*		todos os tempos ou situações dos competidores que nadaram nela
+*		tenham sido inicializados. Finalizar a série bloqueia toda
+*		futura alteração desses tempos e situações.
 *   PARÂMETROS:
-*       pNumInscr   - ENTRADA   - INTEIRO
-*           Número de inscrição do competidor
 *       pModProva   - ENTRADA   - INTEIRO
 *           Número da modalidade (ver tabela Modalidade) da prova
 *       pSexoProva  - ENTRADA   - CARACTER
@@ -522,9 +519,175 @@ end CadastrarSituacao;
 *       pDistProva  - ENTRADA   - NÚMERO
 *           Distância de percurso da prova, em metros
 *       pEtapaSerie - ENTRADA   - INTEIRO
-*           Número de 1 a 3 que representa a etapa da prova
+*           Número de 1 a 3 que representa a etapa
 *                           (1- eliminatória, 2- semifinal, 3- final)
-*       pSituacao   - ENTRADA   - INTEIRO
-*           Número que representa nova situação do competidor:
-*           0- NULO, 1- DESCLASSIFICADO, 2- AUSENTE
+*       pSeqSerie	- ENTRADA   - INTEIRO
+*           Número sequencial que identifica a série da etapa
 **********************************************************************/
+create or replace procedure FinalizarSerie	(pModProva in integer, pSexoProva in char, pDistProva in number,		-- TESTAR
+											pEtapaSerie in integer, pSeqSerie in integer)
+as
+	situacoesNulas integer;
+	linhasAtualizadas integer;
+begin
+	select count(*) into situacoesNulas
+		from Participa
+		where	NumMod = pModProva and
+				SexoProva = pSexoProva and
+				DistProva = pDistProva and
+				EtapaSerie = pEtapaSerie and
+				SeqSerie = pSeqSerie and
+				Situacao is NULL;
+	if situacoesNulas > 0 then
+		raise_application_error(-20019,'A série não pode ser finalizada, ainda existem participantes de situação indefinida');
+	end if;
+	update Serie
+		set Status = 1
+		where	NumMod = pModProva and
+				SexoProva = pSexoProva and
+				DistProva = pDistProva and
+				Etapa = pEtapaSerie and
+				Seq = pSeqSerie and
+				Status = 0;
+	linhasAtualizadas := sql%rowcount;
+	if linhasAtualizadas = 0 then
+		raise_application_error(-20020,'A série não existe ou já foi finalizada');
+	end if;
+end FinalizarSerie;
+/
+
+/**********************************************************************
+*   PROCEDURE:
+*       FinalizarEtapa
+*   DESCRIÇÃO:
+*       Finaliza a etapa eliminatória ou semifinal de uma prova, 
+*		selecionando os melhores competidoes e passando-os para a etapa
+*		seguinte. Aloca os competidores em séries e raias aleatórias da
+*		nova etapa ou em raias específicas, no caso da etapa final. Só
+*		funciona caso todas as séries da etapa encerrada estejam marcadas
+*		como executadas.
+*   PARÂMETROS:
+*       pModProva   - ENTRADA   - INTEIRO
+*           Número da modalidade (ver tabela Modalidade) da prova
+*       pSexoProva  - ENTRADA   - CARACTER
+*           'M' ou 'F', sexo dos participantes da prova
+*       pDistProva  - ENTRADA   - NÚMERO
+*           Distância de percurso da prova, em metros
+*       pEtapa		- ENTRADA   - INTEIRO
+*           Número de 1 a 2 que representa a etapa a ser finalizada
+*                           (1- eliminatória, 2- semifinal)
+**********************************************************************/
+create or replace procedure FinalizarEtapa  (pModProva in integer, pSexoProva in char,              -- RETESTAR
+											pDistProva in number, pEtapa in integer)
+as
+    numSeries integer;
+    numRaiasExtras integer; -- Número de raias que serão usadas na última série
+    raiaLimite integer;
+    rSeed  BINARY_INTEGER;
+    numInscrSelecionado Participa.NumInscr%type;
+    raiaRNG integer;
+    serieRNG integer;
+    linhaRNG integer;
+    linhasRestantes integer;
+	numSelecionados integer;
+	numSeriesNaoExecutadas integer;
+     
+	cursor cursorMenoresTemposEtapa (pModProva integer, pSexoProva char, pDistProva number, pEtapa number, pQtdMelhores integer) -- COMPLETAR/TESTAR
+	is
+	(select *
+		from (
+		  select NumInscr,
+		  row_number() over (order by Tempo, NumInscr) posicao
+		  from Participa
+		  where	NumMod = pModProva and
+				SexoProva = pSexoProva and
+				DistProva = pDistProva and
+				EtapaSerie = pEtapa and
+				Tempo is not NULL
+		)
+		where posicao <= pQtdMelhores);
+begin
+
+	select count(*) into numSeriesNaoExecutadas
+		from Serie
+		where	NumMod = pModProva and
+				SexoProva = pSexoProva and
+				DistProva = pDistProva and
+				Etapa = pEtapa and
+				Status = 0;
+				
+	if numSeriesNaoExecutadas > 0 then
+		raise_application_error(-20022,'Não é possível finalizar a etapa pois há séries ainda não executadas!');
+	end if;
+
+	select count(*) into numSelecionados
+		from (
+		  select NumInscr,
+		  row_number() over (order by Tempo, NumInscr) posicao
+		  from Participa
+		  where	NumMod = pModProva and
+				SexoProva = pSexoProva and
+				DistProva = pDistProva and
+				EtapaSerie = pEtapa and
+				Tempo is not NULL
+		)
+		where posicao <= pQtdMelhores;
+		
+	if pEtapa = 1 then
+		rSeed := TO_NUMBER(TO_CHAR(SYSDATE,'YYYYDDMMSS'));
+		dbms_random.initialize(val => rSeed);
+		
+		numSeries := ceil(numSelecionados / 8);
+		numRaiasExtras := numSelecionados mod 8;
+		if numRaiasExtras = 0 then -- Se a divisão é exata a última série possui 8 raias
+			numRaiasExtras := 8;
+		end if;
+		
+		delete from RaiasAAlocar; -- Limpa tabela auxiliar para utilizá-la
+		
+		for percorreSeries in 1..numSeries loop
+			if percorreSeries = numSeries then -- última série -> preenchem-se algumas raias
+				raiaLimite := numRaiasExtras;
+			else -- primeiras séries -> preenchem-se todas as raias
+				raiaLimite := 8;
+			end if;
+			 
+			for percorreRaias in 1..raiaLimite loop
+				insert into RaiasAAlocar(Ident,SeqSerie,NumRaia)
+					values((percorreSeries-1)*8+percorreRaias,percorreSeries,percorreRaias);
+			end loop;
+		end loop;
+		
+		linhasRestantes := numSelecionados;
+		open cursorMenoresTemposEtapa(pModProva,pSexoProva,pDistProva,pEtapa,32);
+		loop
+			fetch cursorMenoresTemposEtapa into numInscrSelecionado;
+			exit when cursorMenoresTemposEtapa%notfound;
+			 
+			linhaRNG := floor(dbms_random.value(1,linhasRestantes+1));
+			select SeqSerie, NumRaia into serieRNG, raiaRNG
+				from RaiasAAlocar casoATestar
+				where linhaRNG-1 =  (select count(*) as qtdMenores
+									from RaiasAAlocar
+									where Ident < casoATestar.Ident);
+			insert into Participa(NumInscr,NumMod,SexoProva,DistProva,EtapaSerie,SeqSerie,Tempo,Situacao,Raia)
+				values(numInscrSelecionado,pModProva,pSexoProva,pDistProva,2,serieRNG,NULL,NULL,raiaRNG);
+			delete from RaiasAAlocar
+				where   SeqSerie = serieRNG and
+						NumRaia = raiaRNG;
+			linhasRestantes := linhasRestantes - 1;
+		end loop;
+		close cursorMenoresTemposEtapa;
+		 
+		dbms_random.terminate;
+
+	else
+		if pEtapa = 2 then
+			
+		else
+			raise_application_error(-20021,'Etapa inválida');
+		end if;		
+	end if;
+	
+end FinalizarEtapa;
+/
