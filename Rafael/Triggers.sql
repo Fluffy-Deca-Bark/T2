@@ -115,29 +115,30 @@ end;
 *											seja 'executada'.
 **********************************************************************/
 create or replace trigger ParticipaProximaEtapa
-instead of update on Participa
+before update on Participa
 referencing OLD as VelhaParticipacao NEW as NovaParticipacao
 for each row
 declare
-  altereiOQueNaoDevia number;
-  serieAntes number;
-  statusAnterior
+  altereiOQueNaoDevia integer;
+  statusAnterior integer;
 begin 
   altereiOQueNaoDevia :=
   (VelhaParticipacao.tempo != NovaParticipacao.tempo or
   VelhaParticipacao.situcacao != NovaParticipacao.situacao);
   if altereiOQueNaoDevia = 1 then
-    serieAntes := VelhaParticipacao.SeqSerie;
-    if serieAntes != 1 then
-      select status
-      case when Seq = serieAntes-1 then
-        
-      from serie;
-    else
-      ;
+    if VelhaParticipacao.SeqSerie > 1 then
+      select Status into statusAnterior
+		from Serie;
+		where	NumMod = VelhaParticipacao.NumMod and
+				SexoProva = VelhaParticipacao.SexoProva and
+				DistProva = VelhaParticipacao.DistProva and
+				Etapa = VelhaParticipacao.EtapaSerie and
+				Seq = VelhaParticipacao.SeqSerie - 1;
+		
+		if statusAnterior = 0 then
+			raise_application_error(-20023,'A série anterior ainda não foi finalizada, portanto não se pode mudar tempo e situação desse competidor ainda');
+		end if;
     end if;
-  else
-    ;
   end if;
 end;
 /
