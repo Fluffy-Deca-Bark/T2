@@ -91,8 +91,8 @@ end;
 create or replace function SelecionarInscritos	(pModProva in integer, pSexoProva in char,					-- RETESTAR
 												pDistProva in number)
 return integer as
-	inscicaoSelecionada Inscrito.NumInscr%type;
-  numLinha integer;
+	inscricaoSelecionada Inscrito.NumInscr%type;
+	numLinha integer;
 	numSelecionados integer;
 	
 	cursor cursorInscritoMenoresTempos (pModProva integer, pSexoProva char, pDistProva number, pQtdMelhores integer)
@@ -112,12 +112,12 @@ begin
 	
 	open cursorInscritoMenoresTempos(pModProva,pSexoProva,pDistProva,64);
 	loop
-		fetch cursorInscritoMenoresTempos into inscicaoSelecionada, numLinha;
+		fetch cursorInscritoMenoresTempos into inscricaoSelecionada, numLinha;
 		exit when cursorInscritoMenoresTempos%notfound;
 		
 		update Inscrito
 			set Aprovado = 'S'
-			where NumInscr = inscicaoSelecionada;
+			where NumInscr = inscricaoSelecionada;
 		
 		numSelecionados := numSelecionados + 1;
 	end loop;
