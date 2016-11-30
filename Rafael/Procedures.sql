@@ -591,6 +591,9 @@ as
     linhasRestantes integer;
 	numSelecionados integer;
 	numSeriesNaoExecutadas integer;
+	posSelecionado integer;
+	posRaia integer;
+	seriesDaEtapa integer;
      
 	cursor cursorMenoresTemposEtapa (pModProva integer, pSexoProva char, pDistProva number, pEtapa number, pQtdMelhores integer) -- COMPLETAR/TESTAR
 	is
@@ -615,9 +618,20 @@ begin
 				DistProva = pDistProva and
 				Etapa = pEtapa and
 				Status = 0;
-				
+	
+	select count(*) into seriesDaEtapa
+		from Serie
+		where	NumMod = pModProva and
+				SexoProva = pSexoProva and
+				DistProva = pDistProva and
+				Etapa = pEtapa;
+		
+	if seriesDaEtapa = 0 then
+		raise_application_error(-20022,'Prova ou etapa inválida');
+	end if;
+	
 	if numSeriesNaoExecutadas > 0 then
-		raise_application_error(-20022,'Não é possível finalizar a etapa pois há séries ainda não executadas!');
+		raise_application_error(-20023,'Não é possível finalizar a etapa pois há séries ainda não executadas!');
 	end if;
 
 	select count(*) into numSelecionados
@@ -683,7 +697,41 @@ begin
 
 	else
 		if pEtapa = 2 then
-			
+			open cursorMenoresTemposEtapa(pModProva,pSexoProva,pDistProva,pEtapa,8);
+			posSelecionado := 1;
+			loop
+				fetch cursorMenoresTemposEtapa into numInscrSelecionado;
+				exit when cursorMenoresTemposEtapa%notfound;
+				
+				if posSelecionado = 1 then posRaia := 4;
+				else
+					if posSelecionado = 2 then posRaia := 5;
+					else
+						if posSelecionado = 3 then posRaia := 3;
+						else
+							if posSelecionado = 4 then posRaia := 6;
+							else
+								if posSelecionado = 5 then posRaia := 2;
+								else
+									if posSelecionado = 6 then posRaia := 7;
+									else
+										if posSelecionado = 7 then posRaia := 1;
+										else
+											posRaia := 8;
+										end if;
+									end if;
+								end if;
+							end if;
+						end if;
+					end if;
+				end if;
+				
+				insert into Participa(NumInscr,NumMod,SexoProva,DistProva,EtapaSerie,SeqSerie,Tempo,Situacao,Raia)
+					values(numInscrSelecionado,pModProva,pSexoProva,pDistProva,3,1,NULL,NULL,posRaia);
+				
+				posSelecionado := posSelecionado + 1;
+			end loop;
+			close cursorMenoresTemposEtapa;
 		else
 			raise_application_error(-20021,'Etapa inválida');
 		end if;		
