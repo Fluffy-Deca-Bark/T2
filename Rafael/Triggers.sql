@@ -115,7 +115,7 @@ end;
 *											seja 'executada'.
 **********************************************************************/
 create or replace trigger ParticipaProximaEtapa
-instead of insert on Participa
+instead of update on Participa
 referencing OLD as VelhaParticipacao NEW as NovaParticipacao
 for each row
 declare
@@ -126,9 +126,9 @@ begin
   altereiOQueNaoDevia :=
   (VelhaParticipacao.tempo != NovaParticipacao.tempo or
   VelhaParticipacao.situcacao != NovaParticipacao.situacao);
-  if (altereiOQueNaoDevia) then
+  if altereiOQueNaoDevia = 1 then
     serieAntes := VelhaParticipacao.SeqSerie;
-    if (serieAntes != 1) then
+    if serieAntes != 1 then
       select status
       case when Seq = serieAntes-1 then
         
